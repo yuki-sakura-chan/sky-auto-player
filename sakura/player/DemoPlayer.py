@@ -16,10 +16,12 @@ class DemoPlayer(Player):
     audio = []
     channels = []
     num_channels = 0
+    press_num = 0
 
     def press(self, key, time_interval):
+        self.press_num += 1
         note = self.key_mapping[key]
-        channel = self.channels[int(note) % len(self.channels)]
+        channel = self.channels[self.press_num % self.num_channels]
         channel.set_volume(conf.player['volume'])
         channel.play(self.audio[int(note)])
 
