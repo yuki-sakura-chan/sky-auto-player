@@ -102,6 +102,8 @@ def main():
     thread.start()
     play_song(song_notes, bpm)
     thread.join()
+    # 等待播放完全结束
+    time.sleep(2)
 
 
 if __name__ == '__main__':
