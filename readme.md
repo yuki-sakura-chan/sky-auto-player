@@ -24,6 +24,8 @@ pip install PyDirectInput PyYAML chardet pygame
 
 游戏中打开钢琴或其他15键乐器，运行`main.py`文件，选择曲谱即可，然后在2秒内点击游戏（懒得做自动捕捉窗口）。
 
+将配置文件的player.type设置为你需要的系统，目前支持`win`和`demo`。
+
 ## 曲库
 
 仓库自带一些曲子，更多曲子请在互联网获取。获取到曲子之后放在`config.yaml`文件中`file_path`配置的路径下。
