@@ -24,6 +24,8 @@ class DemoPlayer(Player):
         channel.play(self.audio[int(note)])
 
     def __init__(self):
+        if conf.player['type'] != 'demo':
+            return
         cwd = os.getcwd()
         pygame.init()
         pygame.mixer.init()
@@ -34,6 +36,8 @@ class DemoPlayer(Player):
                 pygame.mixer.Sound(os.path.join(cwd, f'resources/Instruments/{conf.player['instruments']}/{i}.wav')))
 
     def __del__(self):
+        if conf.player['type'] != 'demo':
+            return
         pygame.quit()
         pygame.mixer.quit()
         print("\nDemo player is destroyed.")
