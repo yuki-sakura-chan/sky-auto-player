@@ -5,7 +5,7 @@ from sakura.player.Player import Player
 import pydirectinput
 
 
-class Win(Player):
+class WindowsPlayer(Player):
     key_mapping = {
         "C": "y", "D": "u", "E": "i", "F": "o", "G": "p",
         "A": "h", "B": "j", "C1": "k", "D1": "l", "E1": ";",
