@@ -2,8 +2,12 @@ file_path: resources/music/studio/txt
 mapping:
   type: json
 player:
-  type: demo
+  type: android
   # instruments配置只支持demo player
   instruments: Piano
   # 设置音量大小
   volume: 0.5
+# adb 设置
+adb:
+  # adb path 请根据自己的环境配置
+  path: resources/adb/adb.exe

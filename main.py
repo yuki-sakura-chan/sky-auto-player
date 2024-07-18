@@ -10,6 +10,7 @@ import chardet
 
 from sakura.config.Config import Config, conf
 from sakura.mapper.JsonMapper import JsonMapper
+from sakura.player.AndroidPlayer import AndroidPlayer
 from sakura.player.DemoPlayer import DemoPlayer
 from sakura.player.WindowsPlayer import WindowsPlayer
 
@@ -114,6 +115,7 @@ if __name__ == '__main__':
     player_dict = {
         "win": WindowsPlayer(),
         "demo": DemoPlayer(),
+        "android": AndroidPlayer()
     }
     mapping_type = conf.mapping['type']
     key_mapping = mapping_dict[mapping_type].get_key_mapping()

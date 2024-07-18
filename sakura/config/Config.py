@@ -8,6 +8,7 @@ class Config:
     file_path = ''
     mapping = {}
     player = {}
+    adb = {}
 
     @staticmethod
     def load_yaml_config():
@@ -16,6 +17,7 @@ class Config:
             conf.file_path = config['file_path']
             conf.mapping = config['mapping']
             conf.player = config['player']
+            conf.adb = config['adb']
 
 
 conf = Config()
