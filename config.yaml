@@ -2,4 +2,6 @@ file_path: resources/music/studio/txt
 mapping:
   type: json
 player:
-  type: win
+  type: demo
+  # instruments配置只支持demo player
+  instruments: Piano
