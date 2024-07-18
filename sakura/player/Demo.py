@@ -19,7 +19,9 @@ class Demo(Player):
 
     def press(self, key, time_interval):
         note = self.key_mapping[key]
-        self.channels[int(note) % len(self.channels)].play(self.audio[int(note)])
+        channel = self.channels[int(note) % len(self.channels)]
+        channel.set_volume(0.5)
+        channel.play(self.audio[int(note)])
 
     def __init__(self):
         cwd = os.getcwd()
@@ -30,3 +32,8 @@ class Demo(Player):
         for i in range(15):
             self.audio.append(
                 pygame.mixer.Sound(os.path.join(cwd, f'resources/Instruments/{conf.player['instruments']}/{i}.wav')))
+
+    def __del__(self):
+        pygame.quit()
+        pygame.mixer.quit()
+        print("\nDemo player is destroyed.")
