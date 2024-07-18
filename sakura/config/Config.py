@@ -11,7 +11,7 @@ class Config:
 
     @staticmethod
     def load_yaml_config():
-        with open(os.path.join(os.getcwd(), 'config.yaml'), 'r') as f:
+        with open(os.path.join(os.getcwd(), 'config.yaml'), 'r', encoding='UTF-8') as f:
             config = yaml.load(f, Loader=yaml.FullLoader)
             conf.file_path = config['file_path']
             conf.mapping = config['mapping']
