@@ -1,0 +1,126 @@
+# -*- coding: utf-8 -*-
+import sys
+import threading
+import time
+
+import json
+import os
+import chardet
+import codecs
+
+import yaml
+
+from sakura.mapper.JsonMapper import JsonMapper
+from sakura.player.Win import Win
+
+
+# 获取指定目录下的文件列表
+def get_file_list(file_path='resources') -> list:
+    file_list = []
+    for root, dirs, files in os.walk(file_path):
+        for file in files:
+            file_list.append(file)
+    return file_list
+
+
+# 加载yaml配置文件
+def load_yaml_config() -> dict:
+    with open('config.yaml', 'r') as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    return config
+
+
+# 加载json文件
+def load_json(file_path) -> dict or None:
+    with open(file_path, 'rb') as f:
+        encoding = chardet.detect(f.read())['encoding']
+
+    try:
+        with codecs.open(file_path, 'r', encoding=encoding) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"读取JSON文件出错: {e}")
+        return None
+
+
+def to_list(group_data) -> list:
+    # 寻找最长的集合
+    max_len = 0
+    for key in group_data:
+        if len(group_data[key]) > max_len:
+            max_len = len(group_data[key])
+    # 生成列表
+    result = []
+    for i in range(max_len):
+        result.append([])
+        for key in group_data:
+            if i < len(group_data[key]):
+                result[i].append(group_data[key][i])
+    return result
+
+
+def play_song(notes, bpm):
+    prev_note_time = notes[0]['time']
+    # 等待第一个音符按下的时间
+    for note in notes:
+        key = note['key']
+        wait_time = note['time'] - prev_note_time
+        time.sleep(wait_time / 1000)
+        threading.Thread(target=player.press, args=(key_mapping[key], 6 / bpm)).start()
+        prev_note_time = note['time']
+
+
+# 获取最后一个音符，并且获取时长
+def get_last_note_time(song_notes) -> int:
+    last_note = song_notes[-1]
+    return int(last_note['time'] / 1000)
+
+
+# 显示进度条
+def show_progress_bar(current_time, total_time):
+    print('\r', end='')
+    # 获取时间百分比
+    print(f'时间进度{int(current_time / total_time * 100)}%：'
+          f'{'▋' * int(current_time / total_time * 50)}'
+          f'{' ' * (50 - int(current_time / total_time * 50))}'
+          f'{current_time}s/{total_time}s', end='')
+    current_time += 1
+    sys.stdout.flush()
+    time.sleep(1)
+    if current_time <= total_time:
+        show_progress_bar(current_time, total_time)
+
+
+def main():
+    file_path = yaml_conf['file_path']
+    file_list = get_file_list(file_path)
+    for index, file in enumerate(file_list):
+        print(index + 1, file)
+    select_index = input('输入数字选择歌曲：')
+    select_index_int = int(select_index)
+    if select_index_int > len(file_list):
+        print("输入有误，程序结束")
+        return
+    json_list = load_json(f'{file_path}/{file_list[select_index_int - 1]}')
+    song_notes = json_list[0]['songNotes']
+    bpm = json_list[0]['bpm']
+    time.sleep(2)
+    thread = threading.Thread(target=show_progress_bar, args=(0, get_last_note_time(song_notes)))
+    thread.start()
+    play_song(song_notes, bpm)
+    thread.join()
+
+
+if __name__ == '__main__':
+    yaml_conf = load_yaml_config()
+    mapping_dict = {
+        "json": JsonMapper()
+    }
+    player_dict = {
+        "win": Win(),
+    }
+    mapping_type = yaml_conf['mapping']['type']
+    key_mapping = mapping_dict[mapping_type].get_key_mapping()
+    player_type = yaml_conf['player']['type']
+    player = player_dict[player_type]
+    main()
