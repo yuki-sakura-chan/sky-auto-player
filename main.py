@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
+import codecs
+import json
+import os
 import sys
 import threading
 import time
 
-import json
-import os
 import chardet
-import codecs
 
-import yaml
-
+from sakura.config.Config import Config, conf
 from sakura.mapper.JsonMapper import JsonMapper
+from sakura.player.Demo import Demo
 from sakura.player.Win import Win
 
 
@@ -21,13 +21,6 @@ def get_file_list(file_path='resources') -> list:
         for file in files:
             file_list.append(file)
     return file_list
-
-
-# 加载yaml配置文件
-def load_yaml_config() -> dict:
-    with open('config.yaml', 'r') as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-    return config
 
 
 # 加载json文件
@@ -92,7 +85,7 @@ def show_progress_bar(current_time, total_time):
 
 
 def main():
-    file_path = yaml_conf['file_path']
+    file_path = conf.file_path
     file_list = get_file_list(file_path)
     for index, file in enumerate(file_list):
         print(index + 1, file)
@@ -112,15 +105,16 @@ def main():
 
 
 if __name__ == '__main__':
-    yaml_conf = load_yaml_config()
+    Config.load_yaml_config()
     mapping_dict = {
         "json": JsonMapper()
     }
     player_dict = {
         "win": Win(),
+        "demo": Demo(),
     }
-    mapping_type = yaml_conf['mapping']['type']
+    mapping_type = conf.mapping['type']
     key_mapping = mapping_dict[mapping_type].get_key_mapping()
-    player_type = yaml_conf['player']['type']
+    player_type = conf.player['type']
     player = player_dict[player_type]
     main()
