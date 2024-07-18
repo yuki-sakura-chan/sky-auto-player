@@ -5,3 +5,5 @@ player:
   type: demo
   # instruments配置只支持demo player
   instruments: Piano
+  # 设置音量大小
+  volume: 0.5
