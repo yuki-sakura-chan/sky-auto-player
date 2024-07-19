@@ -2,7 +2,7 @@
 
 PC端《sky·光遇》自动弹琴
 
-Android端《sky·光遇》自动弹琴
+Android端《sky·光遇》自动弹琴 ~~使用adb实现，不是所有曲子效果都好~~
 
 ~~Ios端《sky·光遇》自动弹琴~~
 
@@ -34,5 +34,5 @@ pip install PyDirectInput PyYAML chardet pygame
 
 ## 项目灵感
 
-此项目的灵感来自于@Tloml-Starry的项目：[https://github.com/Tloml-Starry/SkyAutoMusic](https://github.com/Tloml-Starry/SkyAutoMusic)。感谢Ta的作品。
+此项目的灵感来自于@Tloml-Starry的项目：[SkyAutoMusic](https://github.com/Tloml-Starry/SkyAutoMusic)。感谢Ta的作品。
 
