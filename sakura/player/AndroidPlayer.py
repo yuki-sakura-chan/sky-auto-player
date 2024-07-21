@@ -23,7 +23,7 @@ class AndroidPlayer(Player):
         "C2": {"x": 1700, "y": 750}
     }
 
-    def press(self, key, time_interval):
+    def press(self, key):
         click(self.key_mapping[key]["x"], self.key_mapping[key]["y"])
 
     def __init__(self):

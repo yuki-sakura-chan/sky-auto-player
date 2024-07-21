@@ -18,7 +18,7 @@ class DemoPlayer(Player):
     num_channels = 0
     press_num = 0
 
-    def press(self, key, time_interval):
+    def press(self, key):
         self.press_num += 1
         note = self.key_mapping[key]
         channel = self.channels[self.press_num % self.num_channels]

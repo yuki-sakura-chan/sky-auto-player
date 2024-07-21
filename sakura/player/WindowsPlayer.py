@@ -12,8 +12,6 @@ class WindowsPlayer(Player):
         "F1": "n", "G1": "m", "A1": ",", "B1": ".", "C2": "/"
     }
 
-    def press(self, key, time_interval):
+    def press(self, key):
         note = self.key_mapping[key]
-        pydirectinput.keyUp(note)
-        time.sleep(time_interval)
-        pydirectinput.keyDown(note)
+        pydirectinput.press(note)
