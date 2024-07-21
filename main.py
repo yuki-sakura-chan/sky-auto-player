@@ -60,7 +60,7 @@ def play_song(notes, bpm):
         key = note['key']
         wait_time = note['time'] - prev_note_time
         time.sleep(wait_time / 1000)
-        threading.Thread(target=player.press, args=(key_mapping[key], 6 / bpm)).start()
+        threading.Thread(target=player.press, args=(key_mapping[key],)).start()
         prev_note_time = note['time']
 
 
