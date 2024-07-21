@@ -28,6 +28,8 @@ pip install PyDirectInput PyYAML chardet pygame
 
 目前安卓还不够完善，需要手动调整音符位置，手动设置adb路径。
 
+`F4`可进行暂停
+
 ## 曲库
 
 仓库自带一些曲子，更多曲子请在互联网获取。获取到曲子之后放在`config.yaml`文件中`file_path`配置的路径下。
