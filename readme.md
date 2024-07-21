@@ -17,7 +17,7 @@ git clone https://github.com/caiyucong/sky-auto-player.git
 安装第三方库
 
 ~~~shell
-pip install PyDirectInput PyYAML chardet pygame
+pip install PyDirectInput PyYAML chardet pygame pynput
 ~~~
 
 ## 使用方法
