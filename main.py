@@ -8,11 +8,14 @@ import time
 
 import chardet
 
+from pynput import keyboard
 from sakura.config.Config import Config, conf
 from sakura.mapper.JsonMapper import JsonMapper
 from sakura.player.AndroidPlayer import AndroidPlayer
 from sakura.player.DemoPlayer import DemoPlayer
 from sakura.player.WindowsPlayer import WindowsPlayer
+
+paused = False
 
 
 # 获取指定目录下的文件列表
@@ -53,10 +56,12 @@ def to_list(group_data) -> list:
     return result
 
 
-def play_song(notes, bpm):
+def play_song(notes):
     prev_note_time = notes[0]['time']
     # 等待第一个音符按下的时间
     for note in notes:
+        while paused:
+            time.sleep(1)
         key = note['key']
         wait_time = note['time'] - prev_note_time
         time.sleep(wait_time / 1000)
@@ -81,8 +86,16 @@ def show_progress_bar(current_time, total_time):
     current_time += 1
     sys.stdout.flush()
     time.sleep(1)
+    while paused:
+        time.sleep(1)
     if current_time <= total_time:
         show_progress_bar(current_time, total_time)
+
+
+def listener(key):
+    global paused
+    if key == keyboard.Key.f4:
+        paused = not paused
 
 
 def main():
@@ -97,11 +110,11 @@ def main():
         return
     json_list = load_json(f'{file_path}/{file_list[select_index_int - 1]}')
     song_notes = json_list[0]['songNotes']
-    bpm = json_list[0]['bpm']
     time.sleep(2)
-    thread = threading.Thread(target=show_progress_bar, args=(0, get_last_note_time(song_notes)))
+    keyboard.Listener(on_press=listener).start()
+    thread = threading.Thread(target=show_progress_bar, args=(0, get_last_note_time(song_notes),))
     thread.start()
-    play_song(song_notes, bpm)
+    play_song(song_notes)
     thread.join()
     # 等待播放完全结束
     time.sleep(2)
