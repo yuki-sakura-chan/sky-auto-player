@@ -1,4 +1,4 @@
-# sky-auto-palyer
+# sky-auto-player
 
 PC端《sky·光遇》自动弹琴
 
