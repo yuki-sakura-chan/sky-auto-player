@@ -40,22 +40,6 @@ def load_json(file_path) -> dict or None:
         return None
 
 
-def to_list(group_data) -> list:
-    # 寻找最长的集合
-    max_len = 0
-    for key in group_data:
-        if len(group_data[key]) > max_len:
-            max_len = len(group_data[key])
-    # 生成列表
-    result = []
-    for i in range(max_len):
-        result.append([])
-        for key in group_data:
-            if i < len(group_data[key]):
-                result[i].append(group_data[key][i])
-    return result
-
-
 def play_song(notes):
     prev_note_time = notes[0]['time']
     # 等待第一个音符按下的时间
