@@ -1,5 +1,4 @@
 import os
-import time
 
 from sakura.config.Config import conf
 from sakura.player.Player import Player

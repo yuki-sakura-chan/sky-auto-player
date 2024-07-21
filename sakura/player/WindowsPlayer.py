@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-import time
+
+import pydirectinput
 
 from sakura.player.Player import Player
-import pydirectinput
 
 
 class WindowsPlayer(Player):
