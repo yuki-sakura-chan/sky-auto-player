@@ -22,7 +22,7 @@ pip install PyDirectInput PyYAML chardet pygame pynput
 
 ## 使用方法
 
-游戏中打开钢琴或其他15键乐器，运行`main.py`文件，选择曲谱即可，然后在2秒内点击游戏（懒得做自动捕捉窗口）。
+游戏中打开钢琴或其他15键乐器，运行`main.py`文件，选择曲谱即可，之后在游戏中按一下F4即可。
 
 将配置文件的`player.type`设置为你需要的系统，目前支持`win`,`demo`,`android`。
 
