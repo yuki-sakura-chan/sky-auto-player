@@ -15,7 +15,7 @@ from sakura.player.AndroidPlayer import AndroidPlayer
 from sakura.player.DemoPlayer import DemoPlayer
 from sakura.player.WindowsPlayer import WindowsPlayer
 
-paused = False
+paused = True
 
 
 # 获取指定目录下的文件列表
@@ -67,11 +67,11 @@ def show_progress_bar(current_time, total_time):
           f'{'▋' * int(current_time / total_time * 50)}'
           f'{' ' * (50 - int(current_time / total_time * 50))}'
           f'{current_time}s/{total_time}s', end='')
+    while paused:
+        time.sleep(1)
     current_time += 1
     sys.stdout.flush()
     time.sleep(1)
-    while paused:
-        time.sleep(1)
     if current_time <= total_time:
         show_progress_bar(current_time, total_time)
 
@@ -94,7 +94,6 @@ def main():
         return
     json_list = load_json(f'{file_path}/{file_list[select_index_int - 1]}')
     song_notes = json_list[0]['songNotes']
-    time.sleep(2)
     keyboard.Listener(on_press=listener).start()
     thread = threading.Thread(target=show_progress_bar, args=(0, get_last_note_time(song_notes),))
     thread.start()
