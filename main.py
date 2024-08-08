@@ -44,11 +44,11 @@ def play_song(notes):
     prev_note_time = notes[0]['time']
     # 等待第一个音符按下的时间
     for note in notes:
-        while paused:
-            time.sleep(1)
         key = note['key']
         wait_time = note['time'] - prev_note_time
         time.sleep(wait_time / 1000)
+        while paused:
+            time.sleep(1)
         threading.Thread(target=player.press, args=(key_mapping[key],)).start()
         prev_note_time = note['time']
 
