@@ -93,6 +93,8 @@ def main():
     song_notes = json_list[0]['songNotes']
     keyboard.Listener(on_press=listener).start()
     thread = threading.Thread(target=show_progress_bar, args=(0, get_last_note_time(song_notes),))
+    # 设置为守护线程
+    thread.daemon = True
     thread.start()
     play_song(song_notes)
     thread.join()
