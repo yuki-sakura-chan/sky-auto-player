@@ -11,10 +11,7 @@ import chardet
 from pynput import keyboard
 from sakura.config.Config import Config, conf
 from sakura.mapper.JsonMapper import JsonMapper
-from sakura.player.AndroidPlayer import AndroidPlayer
-from sakura.player.DemoPlayer import DemoPlayer
-from sakura.player.WindowsPlayer import WindowsPlayer
-
+from sakura.factory.PlayerFactory import get_player
 paused = True
 
 
@@ -108,13 +105,8 @@ if __name__ == '__main__':
     mapping_dict = {
         "json": JsonMapper()
     }
-    player_dict = {
-        "win": WindowsPlayer(),
-        "demo": DemoPlayer(),
-        "android": AndroidPlayer()
-    }
     mapping_type = conf.mapping['type']
     key_mapping = mapping_dict[mapping_type].get_key_mapping()
     player_type = conf.player['type']
-    player = player_dict[player_type]
+    player = get_player(player_type)
     main()
