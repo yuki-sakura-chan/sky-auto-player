@@ -1,0 +1,5 @@
+PyYAML~=6.0.1
+pygame~=2.6.0
+PyDirectInput~=1.0.4
+chardet~=5.2.0
+pynput~=1.7.7
