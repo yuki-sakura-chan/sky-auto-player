@@ -13,7 +13,7 @@ English | [简体中文](./README.zh-CN.md)
 
 **Note:** The repository does not include a large collection of music sheets; users need to obtain them on their own. Some sample music sheets are provided for use.
 
-### Download and Installation
+## Download and Installation
 
 Clone the repository using Git:
 
@@ -27,7 +27,7 @@ Install the required third-party libraries:
 pip install -r requirements.txt
 ```
 
-### Usage
+## Usage
 
 1. Open the piano or any other 15-key instrument within the game.
 2. Run the `main.py` file and select the desired music sheet.
@@ -37,28 +37,28 @@ pip install -r requirements.txt
 
 **Hotkey:** Press `F4` to pause or resume the performance.
 
-### Music Library
+## Music Library
 
 Currently, the program supports `json` format music sheets, with possible future support for `midi` format. You can find more music sheets online and place them in the path specified by `file_path` in the `config.yaml` file.
 
 There are plans to develop a feature for users to upload music sheets. If anyone is willing to provide server support, please contact me.
 
-### Release Plans
+## Release Plans
 
 Once the UI is complete, the project will be packaged into an executable (`exe`) file for ease of use.
 
-### Mobile Support
+## Mobile Support
 
 The project currently focuses on PC development, with mobile support potentially delayed. If anyone is willing to help, mobile support will be expedited.
 
-### About the Project
+## About the Project
 
 The project package is named `sakura` because I like cherry blossoms. 😜
 
-### Project Inspiration
+## Project Inspiration
 
 This project was inspired by @Tloml-Starry's [SkyAutoMusic](https://github.com/Tloml-Starry/SkyAutoMusic) project. Special thanks for the inspiration provided by their work.
 
-### License
+## License
 
 This project is licensed under the [MIT License](./LICENSE).
