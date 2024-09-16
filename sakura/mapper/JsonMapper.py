@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from sakura.mapper.Mapper import Mapper
 
 

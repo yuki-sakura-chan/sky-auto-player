@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import pydirectinput
 
 from sakura.player.Player import Player
