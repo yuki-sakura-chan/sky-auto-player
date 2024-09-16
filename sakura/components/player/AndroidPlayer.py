@@ -1,6 +1,6 @@
 import os
 
-from sakura.player.Player import Player
+from sakura.interface.Player import Player
 
 adb_path = ''
 

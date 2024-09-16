@@ -47,6 +47,8 @@ def play_song(notes):
         while paused:
             time.sleep(1)
         threading.Thread(target=player.press, args=(key_mapping[key], conf,)).start()
+        if wait_time == 0:
+            pass
         prev_note_time = note['time']
 
 

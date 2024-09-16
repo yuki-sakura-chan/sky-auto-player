@@ -1,4 +1,4 @@
-from sakura.mapper.Mapper import Mapper
+from sakura.interface.Mapper import Mapper
 
 
 class JsonMapper(Mapper):

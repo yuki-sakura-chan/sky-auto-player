@@ -1,6 +1,6 @@
 import pydirectinput
 
-from sakura.player.Player import Player
+from sakura.interface.Player import Player
 
 
 class WindowsPlayer(Player):

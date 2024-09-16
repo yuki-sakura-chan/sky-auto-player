@@ -2,7 +2,7 @@ import os
 
 import pygame
 
-from sakura.player.Player import Player
+from sakura.interface.Player import Player
 
 
 class DemoPlayer(Player):
