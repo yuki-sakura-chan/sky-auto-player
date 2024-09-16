@@ -1,5 +1,4 @@
 import os
-from sakura.config.Config import conf
 
 import pygame
 
@@ -17,16 +16,14 @@ class DemoPlayer(Player):
     num_channels = 0
     press_num = 0
 
-    def press(self, key):
+    def press(self, key, conf):
         self.press_num += 1
         note = self.key_mapping[key]
         channel = self.channels[self.press_num % self.num_channels]
-        channel.set_volume(conf.player['volume'])
+        channel.set_volume(conf.get('player.volume'))
         channel.play(self.audio[int(note)])
 
-    def __init__(self):
-        if conf.player['type'] != 'demo':
-            return
+    def __init__(self, conf):
         cwd = os.getcwd()
         pygame.init()
         pygame.mixer.init()
@@ -34,11 +31,9 @@ class DemoPlayer(Player):
         self.channels = [pygame.mixer.Channel(i) for i in range(self.num_channels)]
         for i in range(15):
             self.audio.append(
-                pygame.mixer.Sound(os.path.join(cwd, f'resources/Instruments/{conf.player['instruments']}/{i}.wav')))
+                pygame.mixer.Sound(os.path.join(cwd, f'resources/Instruments/{conf.get('player.instruments')}/{i}.wav')))
 
     def __del__(self):
-        if conf.player['type'] != 'demo':
-            return
         pygame.quit()
         pygame.mixer.quit()
         print("\nDemo player is destroyed.")

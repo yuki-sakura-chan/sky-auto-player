@@ -10,6 +10,6 @@ class WindowsPlayer(Player):
         "F1": "n", "G1": "m", "A1": ",", "B1": ".", "C2": "/"
     }
 
-    def press(self, key):
+    def press(self, key, conf):
         note = self.key_mapping[key]
         pydirectinput.press(note)

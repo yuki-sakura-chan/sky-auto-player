@@ -1,6 +1,5 @@
 import os
 
-from sakura.config.Config import conf
 from sakura.player.Player import Player
 
 adb_path = ''
@@ -22,12 +21,10 @@ class AndroidPlayer(Player):
         "C2": {"x": 1700, "y": 750}
     }
 
-    def press(self, key):
+    def press(self, key, conf):
         click(self.key_mapping[key]["x"], self.key_mapping[key]["y"])
 
-    def __init__(self):
-        if conf.player['type'] != 'android':
-            return
+    def __init__(self, conf):
         global adb_path
         adb_path = conf.adb['path']
         # 判断是否是绝对路径

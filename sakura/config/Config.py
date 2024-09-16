@@ -1,23 +1,27 @@
-# -*- coding: utf-8 -*-
 import os
 
 import yaml
 
 
-class Config:
-    file_path = ''
-    mapping = {}
-    player = {}
-    adb = {}
+def load_yaml_config():
+    with open(os.path.join(os.getcwd(), 'config.yaml'), 'r', encoding='UTF-8') as f:
+        return yaml.safe_load(f)
 
-    @staticmethod
-    def load_yaml_config():
-        with open(os.path.join(os.getcwd(), 'config.yaml'), 'r', encoding='UTF-8') as f:
-            config = yaml.load(f, Loader=yaml.FullLoader)
-            conf.file_path = config['file_path']
-            conf.mapping = config['mapping']
-            conf.player = config['player']
-            conf.adb = config['adb']
+
+class Config:
+    __config: any
+
+    def __init__(self):
+        self.__config = load_yaml_config()
+
+    def get(self, keys):
+        keys_list = keys.split('.')
+        value = self.__config
+        for key in keys_list:
+            value = value.get(key)
+            if value is None:
+                return None
+        return value
 
 
 conf = Config()

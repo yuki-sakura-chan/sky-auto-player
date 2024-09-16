@@ -6,11 +6,12 @@ import threading
 import time
 
 import chardet
-
 from pynput import keyboard
-from sakura.config.Config import Config, conf
-from sakura.mapper.JsonMapper import JsonMapper
+
+from sakura.config.Config import conf
 from sakura.factory.PlayerFactory import get_player
+from sakura.mapper.JsonMapper import JsonMapper
+
 paused = True
 
 
@@ -45,7 +46,7 @@ def play_song(notes):
         time.sleep(wait_time / 1000)
         while paused:
             time.sleep(1)
-        threading.Thread(target=player.press, args=(key_mapping[key],)).start()
+        threading.Thread(target=player.press, args=(key_mapping[key], conf,)).start()
         prev_note_time = note['time']
 
 
@@ -79,7 +80,7 @@ def listener(key):
 
 
 def main():
-    file_path = conf.file_path
+    file_path = conf.get('file_path')
     file_list = get_file_list(file_path)
     for index, file in enumerate(file_list):
         print(index + 1, file)
@@ -102,12 +103,11 @@ def main():
 
 
 if __name__ == '__main__':
-    Config.load_yaml_config()
     mapping_dict = {
         "json": JsonMapper()
     }
-    mapping_type = conf.mapping['type']
+    mapping_type = conf.get('mapping.type')
     key_mapping = mapping_dict[mapping_type].get_key_mapping()
-    player_type = conf.player['type']
-    player = get_player(player_type)
+    player_type = conf.get('player.type')
+    player = get_player(player_type, conf)
     main()
