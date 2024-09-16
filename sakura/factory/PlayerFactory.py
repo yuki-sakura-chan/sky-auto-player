@@ -1,8 +1,8 @@
 import importlib
-from sakura.config.PlayerMapperConfig import player_mapper
+from sakura.factory import player_mapper
 
 
-def get_player(player_type):
+def get_player(player_type : str):
     player = player_mapper.get(player_type)
     if player:
         module = importlib.import_module(player['module'])
