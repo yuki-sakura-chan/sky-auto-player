@@ -13,3 +13,6 @@ class WindowsPlayer(Player):
     def press(self, key, conf):
         note = self.key_mapping[key]
         pydirectinput.press(note)
+
+    def __init__(self, conf: any):
+        pass

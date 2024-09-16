@@ -2,14 +2,14 @@
 player_mapper = {
     "win": {
         "class": "WindowsPlayer",
-        "module": "sakura.player.WindowsPlayer"
+        "module": "sakura.components.player.WindowsPlayer"
     },
     "android": {
         "class": "AndroidPlayer",
-        "module": "sakura.player.AndroidPlayer"
+        "module": "sakura.components.player.AndroidPlayer"
     },
     "demo": {
         "class": "DemoPlayer",
-        "module": "sakura.player.DemoPlayer"
+        "module": "sakura.components.player.DemoPlayer"
     }
 }

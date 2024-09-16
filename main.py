@@ -10,7 +10,7 @@ from pynput import keyboard
 
 from sakura.config.Config import conf
 from sakura.factory.PlayerFactory import get_player
-from sakura.mapper.JsonMapper import JsonMapper
+from sakura.components.mapper.JsonMapper import JsonMapper
 
 paused = True
 
