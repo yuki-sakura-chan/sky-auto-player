@@ -1,16 +1,16 @@
 import codecs
 import json
 import os
-import sys
 import threading
 import time
 
 import chardet
 from pynput import keyboard
 
+from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.config.Config import conf
 from sakura.factory.PlayerFactory import get_player
-from sakura.components.mapper.JsonMapper import JsonMapper
+from sakura.registrar.listener_registers import listener_registers
 
 paused = True
 
@@ -42,37 +42,16 @@ def play_song(notes):
     # 等待第一个音符按下的时间
     for note in notes:
         key = note['key']
-        wait_time = note['time'] - prev_note_time
+        current_time = note['time']
+        wait_time = current_time - prev_note_time
+        if wait_time > 0:
+            for item in listener_registers:
+                item.listener(current_time, prev_note_time, wait_time, notes[-1]['time'], key)
         time.sleep(wait_time / 1000)
         while paused:
             time.sleep(1)
         threading.Thread(target=player.press, args=(key_mapping[key], conf,)).start()
-        if wait_time == 0:
-            pass
         prev_note_time = note['time']
-
-
-# 获取最后一个音符，并且获取时长
-def get_last_note_time(song_notes) -> int:
-    last_note = song_notes[-1]
-    return int(last_note['time'] / 1000)
-
-
-# 显示进度条
-def show_progress_bar(current_time, total_time):
-    print('\r', end='')
-    # 获取时间百分比
-    print(f'时间进度{int(current_time / total_time * 100)}%：'
-          f'{'▋' * int(current_time / total_time * 50)}'
-          f'{' ' * (50 - int(current_time / total_time * 50))}'
-          f'{current_time}s/{total_time}s', end='')
-    while paused:
-        time.sleep(1)
-    current_time += 1
-    sys.stdout.flush()
-    time.sleep(1)
-    if current_time <= total_time:
-        show_progress_bar(current_time, total_time)
 
 
 def listener(key):
@@ -94,13 +73,7 @@ def main():
     json_list = load_json(f'{file_path}/{file_list[select_index_int - 1]}')
     song_notes = json_list[0]['songNotes']
     keyboard.Listener(on_press=listener).start()
-    thread = threading.Thread(target=show_progress_bar, args=(0, get_last_note_time(song_notes),))
-    # 设置为守护线程
-    thread.daemon = True
-    thread.start()
     play_song(song_notes)
-    thread.join()
-    # 等待播放完全结束
     time.sleep(2)
 
 
