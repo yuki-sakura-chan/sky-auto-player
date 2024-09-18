@@ -1,9 +1,10 @@
 import sys
 
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon, Qt
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QFrame
+from qfluentwidgets import FluentIcon as FIF, NavigationDisplayMode
 from qfluentwidgets import NavigationItemPosition, FluentWindow, SubtitleLabel, setFont
-from qfluentwidgets import FluentIcon as FIF
 
 from sakura.components.ui.Home import Home
 
@@ -16,8 +17,8 @@ class Widget(QFrame):
         self.hBoxLayout = QHBoxLayout(self)
 
         setFont(self.label, 24)
-        self.label.setAlignment(Qt.AlignCenter)
-        self.hBoxLayout.addWidget(self.label, 1, Qt.AlignCenter)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.hBoxLayout.addWidget(self.label, 1, Qt.AlignmentFlag.AlignCenter)
 
         # 必须给子界面设置全局唯一的对象名
         self.setObjectName(text.replace(' ', '-'))
@@ -37,10 +38,13 @@ class Window(FluentWindow):
 
     def init_navigation(self):
         self.addSubInterface(self.homeInterface, FIF.HOME, 'Home')
+        self.navigationInterface.addSeparator()
         self.addSubInterface(self.settingInterface, FIF.SETTING, 'Settings', NavigationItemPosition.BOTTOM)
 
     def init_window(self):
-        self.resize(1024, 768)
+        self.setMinimumHeight(800)
+        self.setMinimumWidth(1286)
+        self.navigationInterface.setExpandWidth(180)
         self.setWindowIcon(QIcon(':/qfluentwidgets/images/logo.png'))
         self.setWindowTitle('Sky Auto Player')
 

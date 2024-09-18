@@ -1,10 +1,10 @@
 import webbrowser
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QColor
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QSpacerItem, QHBoxLayout, QSizePolicy
 from qfluentwidgets import FlowLayout, LargeTitleLabel, ElevatedCardWidget, SubtitleLabel, CaptionLabel, IconWidget, \
-    FluentIcon, ToolButton
+    FluentIcon, ToolButton, ImageLabel, TransparentToolButton
 
 
 class Home(QFrame):
@@ -12,18 +12,26 @@ class Home(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.setObjectName("Home")
-        layout = QVBoxLayout(self)
+        background_layout = QVBoxLayout(self)
+        background_layout.setContentsMargins(0, 0, 0, 0)
+        background_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
+        background = ImageLabel('resources/static/images/background-1.jpg', self)
+        background.scaledToWidth(1240)
+        background.setBorderRadius(8, 8, 8, 8)
+        layout = QVBoxLayout(background)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.setContentsMargins(30, 20, 30, 20)
         layout.addWidget(LargeTitleLabel('Welcome to Sky Auto Player!', None))
-        home_card = HomeCard('GitHub repo', '本程序是免费开源的，点击可以跳转到GitHub仓库', FluentIcon.GITHUB,
+        home_card = HomeCard('GitHub repo', '本程序免费开源，欢迎大家贡献', FluentIcon.GITHUB,
                              'https://github.com/yuki-sakura-chan/sky-auto-player', self)
-        component_card = HomeCard('QFluentWidgets', '本程序使用了QFluentWidgets UI 组件库，请勿商用', QIcon(':/qfluentwidgets/images/logo.png'),
+        component_card = HomeCard('QFluentWidgets', '本程序UI使用了QFluentWidgets UI 组件库，详情请点击跳转',
+                                  QIcon(':/qfluentwidgets/images/logo.png'),
                                   'https://qfluentwidgets.com/zh/')
         body_layout = FlowLayout()
         body_layout.addWidget(home_card)
         body_layout.addWidget(component_card)
         layout.addLayout(body_layout)
+        background_layout.addWidget(background)
 
 
 class HomeCard(ElevatedCardWidget):
@@ -38,7 +46,7 @@ class HomeCard(ElevatedCardWidget):
         text_label = CaptionLabel(text, self)
         text_label.setWordWrap(True)
 
-        link = ToolButton(FluentIcon.LINK, self)
+        link = TransparentToolButton(FluentIcon.LINK, self)
         link.setFixedSize(16, 16)
         link.setCursor(Qt.CursorShape.PointingHandCursor)
         link.clicked.connect(lambda: webbrowser.open(url))
