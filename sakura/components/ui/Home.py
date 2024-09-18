@@ -1,6 +1,7 @@
 import webbrowser
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QSpacerItem, QHBoxLayout, QSizePolicy
 from qfluentwidgets import FlowLayout, LargeTitleLabel, ElevatedCardWidget, SubtitleLabel, CaptionLabel, IconWidget, \
     FluentIcon, ToolButton
@@ -17,7 +18,7 @@ class Home(QFrame):
         layout.addWidget(LargeTitleLabel('Welcome to Sky Auto Player!', None))
         home_card = HomeCard('GitHub repo', '本程序是免费开源的，点击可以跳转到GitHub仓库', FluentIcon.GITHUB,
                              'https://github.com/yuki-sakura-chan/sky-auto-player', self)
-        component_card = HomeCard('QFluentWidgets', '本程序使用了QFluentWidgets UI 组件库，请勿商用', FluentIcon.GITHUB,
+        component_card = HomeCard('QFluentWidgets', '本程序使用了QFluentWidgets UI 组件库，请勿商用', QIcon(':/qfluentwidgets/images/logo.png'),
                                   'https://qfluentwidgets.com/zh/')
         body_layout = FlowLayout()
         body_layout.addWidget(home_card)
@@ -27,7 +28,7 @@ class Home(QFrame):
 
 class HomeCard(ElevatedCardWidget):
 
-    def __init__(self, title: str, text: str, icon: FluentIcon, url: str, parent=None):
+    def __init__(self, title: str, text: str, icon: FluentIcon | QIcon, url: str, parent=None):
         super().__init__(parent=parent)
         self.adjustSize()
         self.setFixedWidth(200)
