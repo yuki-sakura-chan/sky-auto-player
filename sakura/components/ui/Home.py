@@ -16,9 +16,12 @@ class Home(QFrame):
         layout.setContentsMargins(30, 20, 30, 20)
         layout.addWidget(LargeTitleLabel('Welcome to Sky Auto Player!', None))
         home_card = HomeCard('GitHub repo', '本程序是免费开源的，点击可以跳转到GitHub仓库', FluentIcon.GITHUB,
-                             'https;//github.com/yuki-sakura-chan/sky-auto-player', self)
+                             'https://github.com/yuki-sakura-chan/sky-auto-player', self)
+        component_card = HomeCard('QFluentWidgets', '本程序使用了QFluentWidgets UI 组件库，请勿商用', FluentIcon.GITHUB,
+                                  'https://qfluentwidgets.com/zh/')
         body_layout = FlowLayout()
         body_layout.addWidget(home_card)
+        body_layout.addWidget(component_card)
         layout.addLayout(body_layout)
 
 
