@@ -1,13 +1,15 @@
-import webbrowser
-
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon, QColor
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QSpacerItem, QHBoxLayout, QSizePolicy
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QSpacerItem, QSizePolicy
 from qfluentwidgets import FlowLayout, LargeTitleLabel, ElevatedCardWidget, SubtitleLabel, CaptionLabel, IconWidget, \
-    FluentIcon, ToolButton, ImageLabel, TransparentToolButton
+    FluentIcon, ImageLabel, qconfig
+
+from sakura.components.ui import background_images
+from sakura.components.ui.BottomLeftLinkButton import BottomLeftLinkButton
 
 
 class Home(QFrame):
+    background_image: str = ':/sakura/images/background-1.jpg'
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -15,7 +17,7 @@ class Home(QFrame):
         background_layout = QVBoxLayout(self)
         background_layout.setContentsMargins(0, 0, 0, 0)
         background_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
-        background = ImageLabel('resources/static/images/background-1.jpg', self)
+        background = ImageLabel(background_images[qconfig.theme.value]['path'], self)
         background.scaledToWidth(1240)
         background.setBorderRadius(8, 8, 8, 8)
         layout = QVBoxLayout(background)
@@ -32,6 +34,7 @@ class Home(QFrame):
         body_layout.addWidget(component_card)
         layout.addLayout(body_layout)
         background_layout.addWidget(background)
+        BottomLeftLinkButton(self, layout, FluentIcon.LINK, background_images[qconfig.theme.value]['url'])
 
 
 class HomeCard(ElevatedCardWidget):
@@ -46,11 +49,6 @@ class HomeCard(ElevatedCardWidget):
         text_label = CaptionLabel(text, self)
         text_label.setWordWrap(True)
 
-        link = TransparentToolButton(FluentIcon.LINK, self)
-        link.setFixedSize(16, 16)
-        link.setCursor(Qt.CursorShape.PointingHandCursor)
-        link.clicked.connect(lambda: webbrowser.open(url))
-
         # 创建主布局
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
@@ -63,10 +61,4 @@ class HomeCard(ElevatedCardWidget):
         # 创建一个较小的占位的 QSpacerItem 用于占用空间，使 link 靠底部对齐
         spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout.addItem(spacer)
-
-        # 添加 link 按钮并设置其靠右对齐
-        link_layout = QHBoxLayout()
-        link_layout.addStretch()
-        link_layout.addWidget(link)
-
-        layout.addLayout(link_layout)
+        BottomLeftLinkButton(self, layout, FluentIcon.LINK, url)

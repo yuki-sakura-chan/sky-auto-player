@@ -1,12 +1,13 @@
 import sys
 
-from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon, Qt
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QFrame
-from qfluentwidgets import FluentIcon as FIF, NavigationDisplayMode
+from qfluentwidgets import FluentIcon as FIF, setTheme, Theme
 from qfluentwidgets import NavigationItemPosition, FluentWindow, SubtitleLabel, setFont
 
+import resources.resources_rc  # noqa
 from sakura.components.ui.Home import Home
+from sakura.components.ui.PlayerUi import PlayerUi
 
 
 class Widget(QFrame):
@@ -32,6 +33,7 @@ class Window(FluentWindow):
 
         # 创建子界面，实际使用时将 Widget 换成自己的子界面
         self.homeInterface = Home(self)
+        self.playerInterface = PlayerUi(self)
         self.settingInterface = Widget('Setting Interface', self)
         self.init_navigation()
         self.init_window()
@@ -39,6 +41,7 @@ class Window(FluentWindow):
     def init_navigation(self):
         self.addSubInterface(self.homeInterface, FIF.HOME, 'Home')
         self.navigationInterface.addSeparator()
+        self.addSubInterface(self.playerInterface, FIF.PLAY, 'Player')
         self.addSubInterface(self.settingInterface, FIF.SETTING, 'Settings', NavigationItemPosition.BOTTOM)
 
     def init_window(self):
@@ -50,6 +53,7 @@ class Window(FluentWindow):
 
 
 if __name__ == '__main__':
+    setTheme(Theme.AUTO)
     app = QApplication(sys.argv)
     w = Window()
     w.show()
