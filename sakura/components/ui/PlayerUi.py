@@ -43,10 +43,35 @@ class PlayerUi(QFrame):
         player_layout = QVBoxLayout()
         player_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         # 创建播放器
-        play = StandardMediaPlayBar()
-        play.setFixedWidth(main_width * 0.8)
+        play = SakuraPlayBar()
         player_layout.addWidget(play)
         player_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
         # 添加播放器到主容器布局
         container_layout.addLayout(file_info_layout)
         container_layout.addLayout(player_layout)
+
+
+class SakuraPlayBar(StandardMediaPlayBar):
+    isPlaying: bool = False
+
+    def __init__(self):
+        super().__init__()
+        self.setFixedWidth(main_width * 0.8)
+        self.progressSlider.setRange(0, 100)
+        self.progressSlider.setValue(50)
+        self.currentTimeLabel.setText('00:00')
+        self.remainTimeLabel.setText('00:20')
+
+    def togglePlayState(self):
+        if self.isPlaying:
+            self.pause()
+        else:
+            self.play()
+
+    def pause(self):
+        self.playButton.setPlay(False)
+        self.isPlaying = False
+
+    def play(self):
+        self.playButton.setPlay(True)
+        self.isPlaying = True
