@@ -1,11 +1,15 @@
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
+import time
+
+from PySide6.QtCore import Qt, QUrl, QThread
+from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QSpacerItem, QSizePolicy
 from qfluentwidgets import FlowLayout, LargeTitleLabel, ElevatedCardWidget, SubtitleLabel, CaptionLabel, IconWidget, \
     FluentIcon, ImageLabel, qconfig
+from requests import request
 
 from sakura.components.ui import background_images, main_width
-from sakura.components.ui.BottomLeftLinkButton import BottomLeftLinkButton
+from sakura.components.ui.BottomRightLinkButton import BottomLeftLinkButton
 
 
 class Home(QFrame):
@@ -29,9 +33,13 @@ class Home(QFrame):
         component_card = HomeCard('QFluentWidgets', '本程序UI使用了QFluentWidgets UI 组件库，详情请点击跳转',
                                   QIcon(':/qfluentwidgets/images/logo.png'),
                                   'https://qfluentwidgets.com/zh/')
+        pixiv_card = HomeCard('Pixiv',
+                              '背景右下角可查看原图。如果你能正常显示Logo，说明你的网络环境可以访问Pixiv',
+                              'https://www.pixiv.net/favicon.ico', 'https://www.pixiv.net/')
         body_layout = FlowLayout()
         body_layout.addWidget(home_card)
         body_layout.addWidget(component_card)
+        body_layout.addWidget(pixiv_card)
         layout.addLayout(body_layout)
         background_layout.addWidget(background)
         BottomLeftLinkButton(self, layout, FluentIcon.LINK, background_images[qconfig.theme.value]['url'])
@@ -39,12 +47,16 @@ class Home(QFrame):
 
 class HomeCard(ElevatedCardWidget):
 
-    def __init__(self, title: str, text: str, icon: FluentIcon | QIcon, url: str, parent=None):
+    def __init__(self, title: str, text: str, icon: FluentIcon | QIcon | str, url: str, parent=None):
         super().__init__(parent=parent)
         self.adjustSize()
         self.setFixedWidth(200)
-        icon = IconWidget(icon, self)
-        icon.setFixedSize(48, 48)
+        icon_label = IconWidget(icon, self)
+        icon_label.setFixedSize(48, 48)
+        if isinstance(icon, str) and icon.startswith('http'):
+            loader_thread = IconLoaderThread(icon, icon_label)
+            loader_thread.finished.connect(lambda: icon_label.setIcon(loader_thread.icon))
+            loader_thread.start()
         title_label = SubtitleLabel(title, self)
         text_label = CaptionLabel(text, self)
         text_label.setWordWrap(True)
@@ -54,7 +66,7 @@ class HomeCard(ElevatedCardWidget):
         layout.setContentsMargins(20, 20, 20, 20)
 
         # 添加控件到布局
-        layout.addWidget(icon)
+        layout.addWidget(icon_label)
         layout.addWidget(title_label)
         layout.addWidget(text_label)
 
@@ -62,3 +74,22 @@ class HomeCard(ElevatedCardWidget):
         spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout.addItem(spacer)
         BottomLeftLinkButton(self, layout, FluentIcon.LINK, url)
+
+
+class IconLoaderThread(QThread):
+    url: str
+    icon: QIcon | FluentIcon
+
+    def __init__(self, url: str, parent=None):
+        super().__init__(parent=parent)
+        self.url = url
+
+    def run(self):
+        resp = request('GET', self.url)
+        if resp.status_code == 200:
+            img_bytes = resp.content
+            pixmap = QPixmap()
+            pixmap.loadFromData(img_bytes)
+            self.icon = QIcon(pixmap)
+        else:
+            self.icon = FluentIcon.CLOSE
