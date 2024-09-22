@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QFrame, QVBoxLayout, QSpacerItem, QSizePolicy
 from qfluentwidgets import FlowLayout, LargeTitleLabel, ElevatedCardWidget, SubtitleLabel, CaptionLabel, IconWidget, \
     FluentIcon, ImageLabel, qconfig
 
-from sakura.components.ui import background_images
+from sakura.components.ui import background_images, main_width
 from sakura.components.ui.BottomLeftLinkButton import BottomLeftLinkButton
 
 
@@ -18,7 +18,7 @@ class Home(QFrame):
         background_layout.setContentsMargins(0, 0, 0, 0)
         background_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
         background = ImageLabel(background_images[qconfig.theme.value]['path'], self)
-        background.scaledToWidth(1240)
+        background.scaledToWidth(main_width)
         background.setBorderRadius(8, 8, 8, 8)
         layout = QVBoxLayout(background)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)

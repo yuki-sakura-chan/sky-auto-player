@@ -31,12 +31,13 @@ class Window(FluentWindow):
     def __init__(self):
         super().__init__()
 
+        # 初始化主页面
+        self.init_window()
         # 创建子界面，实际使用时将 Widget 换成自己的子界面
         self.homeInterface = Home(self)
         self.playerInterface = PlayerUi(self)
         self.settingInterface = Widget('Setting Interface', self)
         self.init_navigation()
-        self.init_window()
 
     def init_navigation(self):
         self.addSubInterface(self.homeInterface, FIF.HOME, 'Home')

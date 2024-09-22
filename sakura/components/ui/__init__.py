@@ -1,4 +1,3 @@
-
 background_images = {
     'Dark': {
         'url': 'https://www.pixiv.net/artworks/80553445',
@@ -9,3 +8,5 @@ background_images = {
         'path': ':/sakura/images/background-1.jpg'
     }
 }
+
+main_width = 1240
