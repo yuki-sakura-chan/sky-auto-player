@@ -1,14 +1,16 @@
 from abc import ABC, abstractmethod
 
+from sakura.config.Config import Config
+
 
 class Player(ABC):
     conf: any
 
     @abstractmethod
-    def press(self, key: str, conf):
+    def press(self, key: str, conf: Config):
         pass
 
     @abstractmethod
-    def __init__(self, conf: any):
+    def __init__(self, conf: Config):
         self.conf = conf
         pass

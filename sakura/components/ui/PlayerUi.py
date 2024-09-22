@@ -11,6 +11,7 @@ class PlayerUi(QFrame):
         self.setObjectName("Player")
         main_layout = FlowLayout(self)
         file_list_box = ListWidget()
+        file_list_box.setFixedSize(400, 600)
         file_list = get_file_list(conf.get('file_path'))
         for index, file in enumerate(file_list):
             file_list_box.addItem(file)
