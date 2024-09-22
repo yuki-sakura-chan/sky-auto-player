@@ -1,8 +1,5 @@
-import time
-
-from PySide6.QtCore import Qt, QUrl, QThread
+from PySide6.QtCore import Qt, QThread
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QSpacerItem, QSizePolicy
 from qfluentwidgets import FlowLayout, LargeTitleLabel, ElevatedCardWidget, SubtitleLabel, CaptionLabel, IconWidget, \
     FluentIcon, ImageLabel, qconfig
@@ -56,6 +53,7 @@ class HomeCard(ElevatedCardWidget):
         if isinstance(icon, str) and icon.startswith('http'):
             loader_thread = IconLoaderThread(icon, icon_label)
             loader_thread.finished.connect(lambda: icon_label.setIcon(loader_thread.icon))
+            icon_label.setIcon(FluentIcon.SYNC)
             loader_thread.start()
         title_label = SubtitleLabel(title, self)
         text_label = CaptionLabel(text, self)
@@ -85,11 +83,15 @@ class IconLoaderThread(QThread):
         self.url = url
 
     def run(self):
-        resp = request('GET', self.url)
-        if resp.status_code == 200:
-            img_bytes = resp.content
-            pixmap = QPixmap()
-            pixmap.loadFromData(img_bytes)
-            self.icon = QIcon(pixmap)
-        else:
+        try:
+            resp = request('GET', self.url, timeout=5)
+            if resp.status_code == 200:
+                img_bytes = resp.content
+                pixmap = QPixmap()
+                pixmap.loadFromData(img_bytes)
+                self.icon = QIcon(pixmap)
+            else:
+                self.icon = FluentIcon.CLOSE
+        except Exception as e:
+            print(e)
             self.icon = FluentIcon.CLOSE
