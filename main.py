@@ -3,6 +3,7 @@ import json
 import os
 import threading
 import time
+from typing import Callable
 
 import chardet
 from pynput import keyboard
@@ -10,6 +11,8 @@ from pynput import keyboard
 from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.config.Config import conf
 from sakura.factory.PlayerFactory import get_player
+from sakura.interface.Mapper import Mapper
+from sakura.interface.Player import Player
 from sakura.registrar.listener_registers import listener_registers
 
 paused = True
@@ -37,10 +40,14 @@ def load_json(file_path) -> dict or None:
         return None
 
 
-def play_song(notes):
+def play_song(notes, player: Player, key_mapping, playing_name: Callable[[], str],
+              is_paused: Callable[[], bool] = lambda: False):
     prev_note_time = notes[0]['time']
+    current_playing_name = playing_name()
     # 等待第一个音符按下的时间
     for note in notes:
+        if current_playing_name != playing_name():
+            return
         key = note['key']
         current_time = note['time']
         wait_time = current_time - prev_note_time
@@ -48,7 +55,7 @@ def play_song(notes):
             for item in listener_registers:
                 item.listener(current_time, prev_note_time, wait_time, notes[-1]['time'], key)
         time.sleep(wait_time / 1000)
-        while paused:
+        while is_paused():
             time.sleep(1)
         threading.Thread(target=player.press, args=(key_mapping[key], conf,)).start()
         prev_note_time = note['time']
@@ -70,10 +77,11 @@ def main():
     if select_index_int > len(file_list):
         print("输入有误，程序结束")
         return
-    json_list = load_json(f'{file_path}/{file_list[select_index_int - 1]}')
+    file_name = file_list[select_index_int - 1]
+    json_list = load_json(f'{file_path}/{file_name}')
     song_notes = json_list[0]['songNotes']
     keyboard.Listener(on_press=listener).start()
-    play_song(song_notes)
+    play_song(song_notes, p, km,lambda: file_name, lambda: paused)
     time.sleep(2)
 
 
@@ -82,7 +90,7 @@ if __name__ == '__main__':
         "json": JsonMapper()
     }
     mapping_type = conf.get('mapping.type')
-    key_mapping = mapping_dict[mapping_type].get_key_mapping()
+    km = mapping_dict[mapping_type].get_key_mapping()
     player_type = conf.get('player.type')
-    player = get_player(player_type, conf)
+    p = get_player(player_type, conf)
     main()
