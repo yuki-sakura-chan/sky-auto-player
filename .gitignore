@@ -1,4 +1,8 @@
 .venv/
 .idea/
 __pycache__/
-/resources
+/resources/**/*.wav
+/resources/music/**/*.txt
+/resources/music/**/*.json
+/build/
+/dist/
