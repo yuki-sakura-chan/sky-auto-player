@@ -31,9 +31,5 @@ class DemoPlayer(Player):
         self.channels = [pygame.mixer.Channel(i) for i in range(self.num_channels)]
         for i in range(15):
             self.audio.append(
-                pygame.mixer.Sound(os.path.join(cwd, f'resources/Instruments/{conf.get('player.instruments')}/{i}.wav')))
-
-    def __del__(self):
-        pygame.quit()
-        pygame.mixer.quit()
-        print("\nDemo player is destroyed.")
+                pygame.mixer.Sound(
+                    os.path.join(cwd, f'resources/Instruments/{conf.get('player.instruments')}/{i}.wav')))
