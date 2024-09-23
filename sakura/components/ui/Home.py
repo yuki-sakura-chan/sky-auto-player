@@ -10,8 +10,6 @@ from sakura.components.ui.BottomRightLinkButton import BottomLeftLinkButton
 
 
 class Home(QFrame):
-    background_image: str = ':/sakura/images/background-1.jpg'
-
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.setObjectName("Home")
