@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/sakura">
+        <file>images/background-0.jpg</file>
+        <file>images/background-1.jpg</file>
+    </qresource>
+</RCC>
