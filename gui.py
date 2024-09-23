@@ -49,7 +49,7 @@ class Window(FluentWindow):
         self.setMinimumHeight(800)
         self.setMinimumWidth(1286)
         self.navigationInterface.setExpandWidth(180)
-        self.setWindowIcon(QIcon('resources/icon/logo-256x256.ico'))
+        self.setWindowIcon(QIcon(':/sakura/icon/logo-128x128.ico'))
         self.setWindowTitle('Sky Auto Player')
 
 

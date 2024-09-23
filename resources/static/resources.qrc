@@ -2,5 +2,9 @@
     <qresource prefix="/sakura">
         <file>images/background-0.jpg</file>
         <file>images/background-1.jpg</file>
+        <file>icon/logo-32x32.ico</file>
+        <file>icon/logo-64x64.ico</file>
+        <file>icon/logo-128x128.ico</file>
+        <file>icon/logo-256x256.ico</file>
     </qresource>
 </RCC>
