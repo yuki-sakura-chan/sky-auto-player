@@ -56,6 +56,11 @@ class Window(FluentWindow):
 if __name__ == '__main__':
     setTheme(Theme.AUTO)
     app = QApplication(sys.argv)
+    screen = app.primaryScreen()
+    screen_rect = screen.availableGeometry()
     w = Window()
+    x = (screen_rect.width() - w.width()) // 2
+    y = (screen_rect.height() - w.height()) // 2
+    w.move(x, y)
     w.show()
     app.exec()
