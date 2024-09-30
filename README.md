@@ -18,7 +18,7 @@ English | [简体中文](./README.zh-CN.md)
 Clone the repository using Git:
 
 ```shell
-git clone https://github.com/caiyucong/sky-auto-player.git
+git clone https://github.com/yuki-sakura-chan/sky-auto-player.git
 ```
 
 Install the required third-party libraries:
