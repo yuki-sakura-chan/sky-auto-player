@@ -18,7 +18,7 @@
 使用 Git 克隆仓库：
 
 ```shell
-git clone https://github.com/caiyucong/sky-auto-player.git
+git clone https://github.com/yuki-sakura-chan/sky-auto-player.git
 ```
 
 安装所需的第三方库：
