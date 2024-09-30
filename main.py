@@ -11,7 +11,6 @@ from pynput import keyboard
 from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.config.Config import conf
 from sakura.factory.PlayerFactory import get_player
-from sakura.interface.Mapper import Mapper
 from sakura.interface.Player import Player
 from sakura.registrar.listener_registers import listener_registers
 
@@ -68,7 +67,7 @@ def listener(key):
 
 
 def main():
-    file_path = conf.get('file_path')
+    file_path = conf.file_path
     file_list = get_file_list(file_path)
     for index, file in enumerate(file_list):
         print(index + 1, file)
@@ -89,8 +88,8 @@ if __name__ == '__main__':
     mapping_dict = {
         "json": JsonMapper()
     }
-    mapping_type = conf.get('mapping.type')
+    mapping_type = conf.mapping.type
     km = mapping_dict[mapping_type].get_key_mapping()
-    player_type = conf.get('player.type')
+    player_type = conf.player.type
     p = get_player(player_type, conf)
     main()

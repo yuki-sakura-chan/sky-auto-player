@@ -1,5 +1,4 @@
 import threading
-import time
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout
@@ -37,7 +36,7 @@ class PlayerUi(QFrame):
         # 加载文件列表
         file_list_box = ListWidget()
         file_list_box.setFixedSize(400, 600)
-        file_list = get_file_list(conf.get('file_path'))
+        file_list = get_file_list(conf.file_path)
         for index, file in enumerate(file_list):
             file_list_box.addItem(file)
         # 添加文件列表到主容器布局
@@ -93,10 +92,10 @@ class SakuraPlayBar(StandardMediaPlayBar):
             self.isPlaying = True
             return
         self.playing_name = file_name
-        json_data = load_json(f'{conf.get("file_path")}/{file_name}')
+        json_data = load_json(f'{conf.file_path}/{file_name}')
         song_notes = json_data[0]['songNotes']
-        player = get_player(conf.get('player.type'), conf)
-        mapping_type = conf.get('mapping.type')
+        player = get_player(conf.player.type, conf)
+        mapping_type = conf.mapping.type
         mapping_dict = {
             "json": JsonMapper()
         }

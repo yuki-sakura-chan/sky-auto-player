@@ -26,7 +26,7 @@ class AndroidPlayer(Player):
 
     def __init__(self, conf):
         global adb_path
-        adb_path = conf.get('adb.path')
+        adb_path = conf.adb.path
         # 判断是否是绝对路径
         if not os.path.isabs(adb_path):
             adb_path = os.path.join(os.getcwd(), adb_path)

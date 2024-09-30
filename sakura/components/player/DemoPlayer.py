@@ -20,7 +20,7 @@ class DemoPlayer(Player):
         self.press_num += 1
         note = self.key_mapping[key]
         channel = self.channels[self.press_num % self.num_channels]
-        channel.set_volume(conf.get('player.volume'))
+        channel.set_volume(conf.player.volume)
         channel.play(self.audio[int(note)])
 
     def __init__(self, conf):
@@ -32,4 +32,4 @@ class DemoPlayer(Player):
         for i in range(15):
             self.audio.append(
                 pygame.mixer.Sound(
-                    os.path.join(cwd, f'resources/Instruments/{conf.get('player.instruments')}/{i}.wav')))
+                    os.path.join(cwd, f'resources/Instruments/{conf.player.instruments}/{i}.wav')))
