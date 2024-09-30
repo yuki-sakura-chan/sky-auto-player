@@ -9,7 +9,7 @@ import chardet
 from pynput import keyboard
 
 from sakura.components.mapper.JsonMapper import JsonMapper
-from sakura.config.Config import conf
+from sakura.config import conf
 from sakura.factory.PlayerFactory import get_player
 from sakura.interface.Player import Player
 from sakura.registrar.listener_registers import listener_registers

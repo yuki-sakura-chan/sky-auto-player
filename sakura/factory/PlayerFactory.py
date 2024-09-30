@@ -1,6 +1,6 @@
 import importlib
 
-from sakura.config.Config import Config
+from sakura.config import Config
 from sakura.factory import player_mapper
 
 

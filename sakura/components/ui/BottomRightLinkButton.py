@@ -4,7 +4,7 @@ from typing import Union
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QSpacerItem, QSizePolicy, QHBoxLayout
-from qfluentwidgets import TransparentToolButton, FluentIcon, FluentIconBase
+from qfluentwidgets import TransparentToolButton, FluentIconBase
 
 
 class BottomLeftLinkButton(TransparentToolButton):

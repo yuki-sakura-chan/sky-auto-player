@@ -8,7 +8,7 @@ from qfluentwidgets.multimedia import StandardMediaPlayBar
 from main import get_file_list, load_json, play_song
 from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.components.ui import main_width
-from sakura.config.Config import conf
+from sakura.config import conf
 from sakura.factory.PlayerFactory import get_player
 
 

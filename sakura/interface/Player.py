@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from sakura.config.Config import Config
+from sakura.config import Config
 
 
 class Player(ABC):
