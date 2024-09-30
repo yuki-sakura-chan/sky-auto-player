@@ -1,28 +1,14 @@
 import sys
 
-from PySide6.QtGui import QIcon, Qt
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QFrame
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QApplication
 from qfluentwidgets import FluentIcon as FIF, setTheme, Theme
-from qfluentwidgets import NavigationItemPosition, FluentWindow, SubtitleLabel, setFont
+from qfluentwidgets import NavigationItemPosition, FluentWindow
 
 import resources.resources_rc  # noqa
 from sakura.components.ui.Home import Home
 from sakura.components.ui.PlayerUi import PlayerUi
-
-
-class Widget(QFrame):
-
-    def __init__(self, text: str, parent=None):
-        super().__init__(parent=parent)
-        self.label = SubtitleLabel(text, self)
-        self.hBoxLayout = QHBoxLayout(self)
-
-        setFont(self.label, 24)
-        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.hBoxLayout.addWidget(self.label, 1, Qt.AlignmentFlag.AlignCenter)
-
-        # 必须给子界面设置全局唯一的对象名
-        self.setObjectName(text.replace(' ', '-'))
+from sakura.components.ui.Settings import SettingsUi
 
 
 class Window(FluentWindow):
@@ -36,7 +22,7 @@ class Window(FluentWindow):
         # 创建子界面，实际使用时将 Widget 换成自己的子界面
         self.homeInterface = Home(self)
         self.playerInterface = PlayerUi(self)
-        self.settingInterface = Widget('Setting Interface', self)
+        self.settingInterface = SettingsUi(self)
         self.init_navigation()
 
     def init_navigation(self):
