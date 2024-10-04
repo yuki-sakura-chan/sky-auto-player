@@ -39,14 +39,11 @@ def load_json(file_path) -> dict or None:
         return None
 
 
-def play_song(notes, player: Player, key_mapping, playing_name: Callable[[], str],
-              is_paused: Callable[[], bool] = lambda: False):
+def play_song(notes, player: Player, key_mapping, is_termination: Callable[[], bool] = lambda: False,
+              is_paused: Callable[[], bool] = lambda: False, cb: Callable[[], None] = lambda: None):
     prev_note_time = notes[0]['time']
-    current_playing_name = playing_name()
     # 等待第一个音符按下的时间
     for note in notes:
-        if current_playing_name != playing_name():
-            return
         key = note['key']
         current_time = note['time']
         wait_time = current_time - prev_note_time
@@ -56,8 +53,13 @@ def play_song(notes, player: Player, key_mapping, playing_name: Callable[[], str
         time.sleep(wait_time / 1000)
         while is_paused():
             time.sleep(1)
+        # 检查是否终止播放（放在这里是为了让音符播放的时间更准确）
+        if is_termination():
+            break
         threading.Thread(target=player.press, args=(key_mapping[key], conf,)).start()
         prev_note_time = note['time']
+    # 播放完毕后的回调
+    cb()
 
 
 def listener(key):
@@ -80,7 +82,7 @@ def main():
     json_list = load_json(f'{file_path}/{file_name}')
     song_notes = json_list[0]['songNotes']
     keyboard.Listener(on_press=listener).start()
-    play_song(song_notes, p, km,lambda: file_name, lambda: paused)
+    play_song(song_notes, p, km, lambda: False, lambda: paused)
     time.sleep(2)
 
 

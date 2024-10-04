@@ -1,4 +1,5 @@
 import threading
+from typing import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout
@@ -10,6 +11,8 @@ from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.components.ui import main_width
 from sakura.config import conf
 from sakura.factory.PlayerFactory import get_player
+from sakura.interface.Mapper import Mapper
+from sakura.interface.Player import Player
 
 
 class PlayerUi(QFrame):
@@ -58,10 +61,53 @@ class PlayerUi(QFrame):
         container_layout.addLayout(player_layout)
 
 
+class SakuraPlayer:
+    song_notes: list
+    player: Player
+    key_mapping: Mapper
+    is_finished: bool = False
+    cb: Callable[[], None]
+    is_playing: bool
+
+    def __init__(self, song_notes: list, player: Player, key_mapping: Mapper,
+                 cb: Callable[[], None] = lambda: None):
+        self.song_notes = song_notes
+        self.player = player
+        self.key_mapping = key_mapping
+        self.is_playing = False
+        self.cb = cb
+
+    def play(self):
+        self.is_finished = False
+        self.is_playing = True
+        player_thread = threading.Thread(target=play_song,
+                                         args=(self.song_notes, self.player, self.key_mapping, lambda: self.is_finished,
+                                               lambda: not self.is_playing, self.callback,))
+        player_thread.daemon = True
+        player_thread.start()
+
+    def pause(self):
+        self.is_playing = False
+
+    def stop(self):
+        # 继续播放，以保证可以执行回调
+        self.is_playing = True
+        # 终止线程
+        self.is_finished = True
+
+    def continue_play(self):
+        self.is_playing = True
+
+    def callback(self):
+        self.is_playing = False
+        self.cb()
+
+
 class SakuraPlayBar(StandardMediaPlayBar):
     is_playing: bool = False
     file_list_box: ListWidget
     playing_name: str = ''
+    sakura_player_dict: dict[str, SakuraPlayer] = {}
 
     def __init__(self, parent: PlayerUi = None):
         super().__init__()
@@ -81,6 +127,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
     def pause(self):
         self.playButton.setPlay(False)
         self.is_playing = False
+        self.sakura_player_dict[self.playing_name].pause()
 
     def play(self):
         current_item = self.file_list_box.currentItem()
@@ -90,8 +137,19 @@ class SakuraPlayBar(StandardMediaPlayBar):
         if self.playing_name == file_name:
             self.playButton.setPlay(True)
             self.is_playing = True
+            self.sakura_player_dict[file_name].continue_play()
             return
         self.playing_name = file_name
+        # 播放新的歌曲时，终止之前的播放器
+        if self.sakura_player_dict:
+            for p in self.sakura_player_dict.values():
+                p.stop()
+        # 如果 sakura_player_dict 中已经有了这个播放器，直接播放
+        if file_name in self.sakura_player_dict:
+            self.playButton.setPlay(True)
+            self.is_playing = True
+            self.sakura_player_dict[file_name].play()
+            return
         json_data = load_json(f'{conf.file_path}/{file_name}')
         song_notes = json_data[0]['songNotes']
         player = get_player(conf.player.type, conf)
@@ -100,10 +158,14 @@ class SakuraPlayBar(StandardMediaPlayBar):
             "json": JsonMapper()
         }
         key_mapping = mapping_dict[mapping_type].get_key_mapping()
-        player_thread = threading.Thread(target=play_song,
-                                         args=(song_notes, player, key_mapping, lambda: False,
-                                               lambda: not self.is_playing,))
-        player_thread.daemon = True
-        player_thread.start()
+        sakura_player = SakuraPlayer(song_notes, player, key_mapping, self.callback)
+        sakura_player.play()
+        self.sakura_player_dict[file_name] = sakura_player
         self.playButton.setPlay(True)
         self.is_playing = True
+
+    # 当播放完毕时，回调当前接口
+    def callback(self):
+        self.playButton.setPlay(False)
+        self.is_playing = False
+        self.playing_name = ''
