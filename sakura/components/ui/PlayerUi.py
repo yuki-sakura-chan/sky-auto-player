@@ -59,7 +59,7 @@ class PlayerUi(QFrame):
 
 
 class SakuraPlayBar(StandardMediaPlayBar):
-    isPlaying: bool = False
+    is_playing: bool = False
     file_list_box: ListWidget
     playing_name: str = ''
 
@@ -73,14 +73,14 @@ class SakuraPlayBar(StandardMediaPlayBar):
         self.file_list_box = parent.file_list_box
 
     def togglePlayState(self):
-        if self.isPlaying:
+        if self.is_playing:
             self.pause()
         else:
             self.play()
 
     def pause(self):
         self.playButton.setPlay(False)
-        self.isPlaying = False
+        self.is_playing = False
 
     def play(self):
         current_item = self.file_list_box.currentItem()
@@ -89,7 +89,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
         file_name = current_item.text()
         if self.playing_name == file_name:
             self.playButton.setPlay(True)
-            self.isPlaying = True
+            self.is_playing = True
             return
         self.playing_name = file_name
         json_data = load_json(f'{conf.file_path}/{file_name}')
@@ -101,9 +101,9 @@ class SakuraPlayBar(StandardMediaPlayBar):
         }
         key_mapping = mapping_dict[mapping_type].get_key_mapping()
         player_thread = threading.Thread(target=play_song,
-                                         args=(song_notes, player, key_mapping, lambda: self.playing_name,
-                                               lambda: not self.isPlaying,))
+                                         args=(song_notes, player, key_mapping, lambda: False,
+                                               lambda: not self.is_playing,))
         player_thread.daemon = True
         player_thread.start()
         self.playButton.setPlay(True)
-        self.isPlaying = True
+        self.is_playing = True
