@@ -3,6 +3,7 @@ import json
 import os
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Callable
 
 import chardet
@@ -15,6 +16,9 @@ from sakura.interface.Player import Player
 from sakura.registrar.listener_registers import listener_registers
 
 paused = True
+
+# 创建一个线程池，可以设置 max_workers 来控制最大并发线程数
+executor = ThreadPoolExecutor(max_workers=10)
 
 
 # 获取指定目录下的文件列表
@@ -39,8 +43,21 @@ def load_json(file_path) -> dict or None:
         return None
 
 
-def play_song(notes, player: Player, key_mapping, is_termination: Callable[[], bool] = lambda: False,
-              is_paused: Callable[[], bool] = lambda: False, cb: Callable[[], None] = lambda: None):
+class PlayCallback:
+    is_termination = Callable[[], bool]
+    is_paused = Callable[[], bool]
+    cb = Callable[[], None]
+    termination_cb = Callable[[], None]
+
+    def __init__(self, is_termination: Callable[[], bool] = False, is_paused: Callable[[], bool] = False,
+                 cb: Callable[[], None] = None, termination_cb: Callable[[], None] = None):
+        self.is_termination = is_termination
+        self.is_paused = is_paused
+        self.cb = cb
+        self.termination_cb = termination_cb
+
+
+def play_song(notes, player: Player, key_mapping, play_cb: PlayCallback):
     prev_note_time = notes[0]['time']
     # 等待第一个音符按下的时间
     for note in notes:
@@ -51,15 +68,16 @@ def play_song(notes, player: Player, key_mapping, is_termination: Callable[[], b
             for item in listener_registers:
                 item.listener(current_time, prev_note_time, wait_time, notes[-1]['time'], key)
         time.sleep(wait_time / 1000)
-        while is_paused():
+        while play_cb.is_paused():
             time.sleep(1)
         # 检查是否终止播放（放在这里是为了让音符播放的时间更准确）
-        if is_termination():
-            break
-        threading.Thread(target=player.press, args=(key_mapping[key], conf,)).start()
+        if play_cb.is_termination():
+            play_cb.termination_cb()
+            return
+        executor.submit(player.press, key_mapping[key], conf)
         prev_note_time = note['time']
     # 播放完毕后的回调
-    cb()
+    play_cb.cb()
 
 
 def listener(key):
@@ -82,7 +100,7 @@ def main():
     json_list = load_json(f'{file_path}/{file_name}')
     song_notes = json_list[0]['songNotes']
     keyboard.Listener(on_press=listener).start()
-    play_song(song_notes, p, km, lambda: False, lambda: paused)
+    play_song(song_notes, p, km, PlayCallback(lambda: False, lambda: paused, lambda: None, lambda: None))
     time.sleep(2)
 
 

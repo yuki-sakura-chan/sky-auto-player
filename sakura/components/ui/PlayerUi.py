@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout
 from qfluentwidgets import ListWidget
 from qfluentwidgets.multimedia import StandardMediaPlayBar
 
-from main import get_file_list, load_json, play_song
+from main import get_file_list, load_json, play_song, PlayCallback
 from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.components.ui import main_width
 from sakura.config import conf
@@ -67,22 +67,24 @@ class SakuraPlayer:
     key_mapping: Mapper
     is_finished: bool = False
     cb: Callable[[], None]
+    tcb: Callable[[], None]
     is_playing: bool
 
     def __init__(self, song_notes: list, player: Player, key_mapping: Mapper,
-                 cb: Callable[[], None] = lambda: None):
+                 cb: Callable[[], None] = lambda: None, tcb: Callable[[], None] = lambda: None):
         self.song_notes = song_notes
         self.player = player
         self.key_mapping = key_mapping
         self.is_playing = False
         self.cb = cb
+        self.tcb = tcb
 
     def play(self):
         self.is_finished = False
         self.is_playing = True
+        play_cb = PlayCallback(lambda: self.is_finished, lambda: not self.is_playing, self.callback, self.termination_cb)
         player_thread = threading.Thread(target=play_song,
-                                         args=(self.song_notes, self.player, self.key_mapping, lambda: self.is_finished,
-                                               lambda: not self.is_playing, self.callback,))
+                                         args=(self.song_notes, self.player, self.key_mapping, play_cb,))
         player_thread.daemon = True
         player_thread.start()
 
@@ -101,6 +103,9 @@ class SakuraPlayer:
     def callback(self):
         self.is_playing = False
         self.cb()
+
+    def termination_cb(self):
+        self.tcb()
 
 
 class SakuraPlayBar(StandardMediaPlayBar):
@@ -158,7 +163,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
             "json": JsonMapper()
         }
         key_mapping = mapping_dict[mapping_type].get_key_mapping()
-        sakura_player = SakuraPlayer(song_notes, player, key_mapping, self.callback)
+        sakura_player = SakuraPlayer(song_notes, player, key_mapping, self.callback, self.termination_cb)
         sakura_player.play()
         self.sakura_player_dict[file_name] = sakura_player
         self.playButton.setPlay(True)
@@ -169,3 +174,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
         self.playButton.setPlay(False)
         self.is_playing = False
         self.playing_name = ''
+
+    # 手动终止播放时，回调当前接口
+    def termination_cb(self):
+        pass
