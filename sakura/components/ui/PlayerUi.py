@@ -8,12 +8,14 @@ from qfluentwidgets import ListWidget
 from qfluentwidgets.multimedia import StandardMediaPlayBar
 
 from main import get_file_list, load_json, play_song, PlayCallback
+from sakura.components.SakuraPlayBar import SakuraProgressBar
 from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.components.ui import main_width
 from sakura.config import conf
 from sakura.factory.PlayerFactory import get_player
 from sakura.interface.Player import Player
 from sakura.listener import register_listener
+from sakura.registrar.listener_registers import listener_registers
 
 
 class PlayerUi(QFrame):
@@ -114,12 +116,14 @@ class SakuraPlayBar(StandardMediaPlayBar):
     def __init__(self, parent: PlayerUi = None):
         super().__init__()
         self.setFixedWidth(main_width * 0.8)
-        self.progressSlider.setRange(0, 100)
-        self.progressSlider.setValue(50)
-        self.currentTimeLabel.setText('00:00')
-        self.remainTimeLabel.setText('00:20')
         self.file_list_box = parent.file_list_box
+        self.progressSlider.setRange(0, 100)
+        self.currentTimeLabel.setText('0:00')
+        self.remainTimeLabel.setText('0:00')
+        # 注册全局键盘监听
         register_listener(keyboard.Key.f4, self.togglePlayState, '暂停/继续')
+        # 注册 PressListener 监听
+        listener_registers.append(SakuraProgressBar(self.progressSlider, self.currentTimeLabel, self.remainTimeLabel))
 
     def togglePlayState(self):
         if self.is_playing:

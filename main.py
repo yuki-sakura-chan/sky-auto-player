@@ -64,9 +64,6 @@ def play_song(notes, player: Player, key_mapping, play_cb: PlayCallback):
         key = note['key']
         current_time = note['time']
         wait_time = current_time - prev_note_time
-        if wait_time > 0:
-            for item in listener_registers:
-                item.listener(current_time, prev_note_time, wait_time, notes[-1]['time'], key)
         time.sleep(wait_time / 1000)
         while play_cb.is_paused():
             time.sleep(1)
@@ -75,6 +72,9 @@ def play_song(notes, player: Player, key_mapping, play_cb: PlayCallback):
             play_cb.termination_cb()
             return
         executor.submit(player.press, key_mapping[key], conf)
+        if wait_time > 0:
+            for item in listener_registers:
+                item.listener(current_time, prev_note_time, wait_time, notes[-1]['time'], key, play_cb.is_paused)
         prev_note_time = note['time']
     # 播放完毕后的回调
     play_cb.cb()

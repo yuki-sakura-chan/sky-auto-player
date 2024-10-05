@@ -1,4 +1,5 @@
 import sys
+from typing import Callable
 
 from sakura.interface.PressListener import PressListener
 
@@ -6,7 +7,7 @@ from sakura.interface.PressListener import PressListener
 class ProgressBar(PressListener):
     current_second: int = 0
 
-    def listener(self, current_time, prev_time, wait_time, last_time, key):
+    def listener(self, current_time, prev_time, wait_time, last_time, key, is_paused: Callable[[], bool]):
         print('\r', end='')
         # 获取时间百分比
         print(f'弹奏进度{int(current_time / last_time * 100)}%：'
