@@ -1,7 +1,6 @@
 import codecs
 import json
 import os
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable

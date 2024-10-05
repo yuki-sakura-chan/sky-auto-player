@@ -9,6 +9,7 @@ import resources.resources_rc  # noqa
 from sakura.components.ui.Home import Home
 from sakura.components.ui.PlayerUi import PlayerUi
 from sakura.components.ui.Settings import SettingsUi
+from sakura.config import conf, save_conf
 
 
 class Window(FluentWindow):
@@ -37,6 +38,10 @@ class Window(FluentWindow):
         self.navigationInterface.setExpandWidth(180)
         self.setWindowIcon(QIcon(':/sakura/icon/logo-128x128.ico'))
         self.setWindowTitle('Sky Auto Player')
+
+    def closeEvent(self, event):
+        super().closeEvent(event)
+        save_conf(conf)
 
 
 if __name__ == '__main__':

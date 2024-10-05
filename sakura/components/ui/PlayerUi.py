@@ -11,7 +11,6 @@ from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.components.ui import main_width
 from sakura.config import conf
 from sakura.factory.PlayerFactory import get_player
-from sakura.interface.Mapper import Mapper
 from sakura.interface.Player import Player
 
 
@@ -63,28 +62,24 @@ class PlayerUi(QFrame):
 
 class SakuraPlayer:
     song_notes: list
-    player: Player
-    key_mapping: Mapper
     is_finished: bool = False
     cb: Callable[[], None]
     tcb: Callable[[], None]
     is_playing: bool
 
-    def __init__(self, song_notes: list, player: Player, key_mapping: Mapper,
-                 cb: Callable[[], None] = lambda: None, tcb: Callable[[], None] = lambda: None):
+    def __init__(self, song_notes: list, cb: Callable[[], None] = lambda: None, tcb: Callable[[], None] = lambda: None):
         self.song_notes = song_notes
-        self.player = player
-        self.key_mapping = key_mapping
         self.is_playing = False
         self.cb = cb
         self.tcb = tcb
 
-    def play(self):
+    def play(self, player: Player, key_mapping: dict):
         self.is_finished = False
         self.is_playing = True
-        play_cb = PlayCallback(lambda: self.is_finished, lambda: not self.is_playing, self.callback, self.termination_cb)
+        play_cb = PlayCallback(lambda: self.is_finished, lambda: not self.is_playing, self.callback,
+                               self.termination_cb)
         player_thread = threading.Thread(target=play_song,
-                                         args=(self.song_notes, self.player, self.key_mapping, play_cb,))
+                                         args=(self.song_notes, player, key_mapping, play_cb,))
         player_thread.daemon = True
         player_thread.start()
 
@@ -138,6 +133,12 @@ class SakuraPlayBar(StandardMediaPlayBar):
         current_item = self.file_list_box.currentItem()
         if current_item is None:
             return
+        player = get_player(conf.player.type, conf)
+        mapping_type = conf.mapping.type
+        mapping_dict = {
+            "json": JsonMapper()
+        }
+        key_mapping = mapping_dict[mapping_type].get_key_mapping()
         file_name = current_item.text()
         if self.playing_name == file_name:
             self.playButton.setPlay(True)
@@ -153,18 +154,12 @@ class SakuraPlayBar(StandardMediaPlayBar):
         if file_name in self.sakura_player_dict:
             self.playButton.setPlay(True)
             self.is_playing = True
-            self.sakura_player_dict[file_name].play()
+            self.sakura_player_dict[file_name].play(player, key_mapping)
             return
         json_data = load_json(f'{conf.file_path}/{file_name}')
         song_notes = json_data[0]['songNotes']
-        player = get_player(conf.player.type, conf)
-        mapping_type = conf.mapping.type
-        mapping_dict = {
-            "json": JsonMapper()
-        }
-        key_mapping = mapping_dict[mapping_type].get_key_mapping()
-        sakura_player = SakuraPlayer(song_notes, player, key_mapping, self.callback, self.termination_cb)
-        sakura_player.play()
+        sakura_player = SakuraPlayer(song_notes, self.callback, self.termination_cb)
+        sakura_player.play(player, key_mapping)
         self.sakura_player_dict[file_name] = sakura_player
         self.playButton.setPlay(True)
         self.is_playing = True
