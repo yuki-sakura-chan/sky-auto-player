@@ -12,6 +12,7 @@ from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.config import conf
 from sakura.factory.PlayerFactory import get_player
 from sakura.interface.Player import Player
+from sakura.listener import register_listener
 from sakura.registrar.listener_registers import listener_registers
 
 paused = True
@@ -79,10 +80,9 @@ def play_song(notes, player: Player, key_mapping, play_cb: PlayCallback):
     play_cb.cb()
 
 
-def listener(key):
+def listener():
     global paused
-    if key == keyboard.Key.f4:
-        paused = not paused
+    paused = not paused
 
 
 def main():
@@ -98,7 +98,7 @@ def main():
     file_name = file_list[select_index_int - 1]
     json_list = load_json(f'{file_path}/{file_name}')
     song_notes = json_list[0]['songNotes']
-    keyboard.Listener(on_press=listener).start()
+    register_listener(keyboard.Key.f4, listener, '暂停/继续')
     play_song(song_notes, p, km, PlayCallback(lambda: False, lambda: paused, lambda: None, lambda: None))
     time.sleep(2)
 

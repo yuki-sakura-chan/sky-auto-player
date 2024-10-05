@@ -3,6 +3,7 @@ from typing import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout
+from pynput import keyboard
 from qfluentwidgets import ListWidget
 from qfluentwidgets.multimedia import StandardMediaPlayBar
 
@@ -12,6 +13,7 @@ from sakura.components.ui import main_width
 from sakura.config import conf
 from sakura.factory.PlayerFactory import get_player
 from sakura.interface.Player import Player
+from sakura.listener import register_listener
 
 
 class PlayerUi(QFrame):
@@ -117,6 +119,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
         self.currentTimeLabel.setText('00:00')
         self.remainTimeLabel.setText('00:20')
         self.file_list_box = parent.file_list_box
+        register_listener(keyboard.Key.f4, self.togglePlayState, '暂停/继续')
 
     def togglePlayState(self):
         if self.is_playing:
