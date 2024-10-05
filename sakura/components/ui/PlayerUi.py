@@ -8,6 +8,7 @@ from qfluentwidgets import ListWidget, FluentIcon
 from qfluentwidgets.multimedia import StandardMediaPlayBar
 
 from main import get_file_list, load_json, play_song, PlayCallback
+from sakura import children_windows
 from sakura.components.SakuraPlayBar import SakuraProgressBar
 from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.components.ui import main_width
@@ -145,10 +146,12 @@ class SakuraPlayBar(StandardMediaPlayBar):
             self.state = 'mini'
             self.temp_width = self.width()
             self.setFixedWidth(200)
+            children_windows.append(self)
         else:
             self.state = 'normal'
             self.setFixedWidth(self.temp_width)
             self.temp_layout.addWidget(self)
+            children_windows.remove(self)
 
     # 鼠标按下事件，记录初始位置
     def mousePressEvent(self, event):

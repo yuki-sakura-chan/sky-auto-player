@@ -1,4 +1,3 @@
-import webbrowser
 from typing import Union, Callable
 
 from PySide6.QtCore import Qt

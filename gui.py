@@ -6,6 +6,7 @@ from qfluentwidgets import FluentIcon as FIF, setTheme, Theme
 from qfluentwidgets import NavigationItemPosition, FluentWindow
 
 import resources.resources_rc  # noqa
+from sakura import children_windows
 from sakura.components.ui.Home import Home
 from sakura.components.ui.PlayerUi import PlayerUi
 from sakura.components.ui.Settings import SettingsUi
@@ -42,6 +43,8 @@ class Window(FluentWindow):
     def closeEvent(self, event):
         super().closeEvent(event)
         save_conf(conf)
+        for item in children_windows:
+            item.close()
 
 
 if __name__ == '__main__':
