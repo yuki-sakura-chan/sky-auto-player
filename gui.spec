@@ -5,8 +5,8 @@ a = Analysis(
     ['gui.py'],
     pathex=[],
     binaries=[],
-    datas=[],
-    hiddenimports=[],
+    datas=[('sakura','sakura')],
+    hiddenimports=['pygame', 'PyDirectInput', 'pynput', 'requests'],
     hookspath=['./hooks'],
     hooksconfig={},
     runtime_hooks=[],
@@ -32,7 +32,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='resources/icon/logo-64x64.ico',
+    icon='resources/static/icon/logo-64x64.ico',
 )
 coll = COLLECT(
     exe,
