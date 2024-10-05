@@ -1,8 +1,8 @@
 import threading
-from typing import Callable
+from typing import Callable, Any
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLayout
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLayout, QWidget
 from pynput import keyboard
 from qfluentwidgets import ListWidget, FluentIcon
 from qfluentwidgets.multimedia import StandardMediaPlayBar
@@ -57,7 +57,7 @@ class PlayerUi(QFrame):
         player_layout = QVBoxLayout()
         player_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         # 创建播放器
-        play = SakuraPlayBar(self)
+        play = SakuraPlayBar(self, temp_layout=player_layout)
         player_layout.addWidget(play)
         player_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
         # 添加播放器到主容器布局
@@ -114,19 +114,66 @@ class SakuraPlayBar(StandardMediaPlayBar):
     file_list_box: ListWidget
     playing_name: str = ''
     sakura_player_dict: dict[str, SakuraPlayer] = {}
+    temp_window: QWidget
+    temp_layout: QVBoxLayout
+    state: str = 'normal'
+    _is_dragging: bool = False
+    _start_position: Any
+    temp_width: int
 
-    def __init__(self, parent: PlayerUi = None):
+    def __init__(self, parent: PlayerUi = None, temp_layout: QVBoxLayout = None):
         super().__init__()
+        self.temp_layout = temp_layout
         self.setFixedWidth(main_width * 0.8)
         self.file_list_box = parent.file_list_box
         self.progressSlider.setRange(0, 100)
         self.currentTimeLabel.setText('0:00')
         self.remainTimeLabel.setText('0:00')
-        BottomRightButton(self, self.rightButtonLayout, FluentIcon.MINIMIZE)
+        self.rightButtonLayout.setContentsMargins(0, 0, 8, 0)
+        BottomRightButton(self, self.rightButtonLayout, FluentIcon.MINIMIZE, self.toggle_layout)
         # 注册全局键盘监听
         register_listener(keyboard.Key.f4, self.togglePlayState, '暂停/继续')
         # 注册 PressListener 监听
         listener_registers.append(SakuraProgressBar(self.progressSlider, self.currentTimeLabel, self.remainTimeLabel))
+
+    def toggle_layout(self):
+        if self.state == 'normal':
+            self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+            self.setParent(None)
+            self.show()
+            self.state = 'mini'
+            self.temp_width = self.width()
+            self.setFixedWidth(200)
+        else:
+            self.state = 'normal'
+            self.setFixedWidth(self.temp_width)
+            self.temp_layout.addWidget(self)
+
+    # 鼠标按下事件，记录初始位置
+    def mousePressEvent(self, event):
+        if self.state == 'normal':
+            return
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._is_dragging = True
+            self._start_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            event.accept()
+
+    # 鼠标移动事件，更新窗口位置
+    def mouseMoveEvent(self, event):
+        if self.state == 'normal':
+            return
+        if self._is_dragging:
+            self.move(event.globalPosition().toPoint() - self._start_position)
+            event.accept()
+
+    # 鼠标释放事件，停止拖动
+    def mouseReleaseEvent(self, event):
+        if self.state == 'normal':
+            return
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._is_dragging = False
+            event.accept()
 
     def togglePlayState(self):
         if self.is_playing:
