@@ -1,3 +1,5 @@
+import webbrowser
+
 from PySide6.QtCore import Qt, QThread
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QSpacerItem, QSizePolicy
@@ -6,7 +8,7 @@ from qfluentwidgets import FlowLayout, LargeTitleLabel, ElevatedCardWidget, Subt
 from requests import request
 
 from sakura.components.ui import background_images, main_width
-from sakura.components.ui.BottomRightLinkButton import BottomLeftLinkButton
+from sakura.components.ui.BottomRightButton import BottomRightButton
 
 
 class Home(QFrame):
@@ -37,7 +39,7 @@ class Home(QFrame):
         body_layout.addWidget(pixiv_card)
         layout.addLayout(body_layout)
         background_layout.addWidget(background)
-        BottomLeftLinkButton(self, layout, FluentIcon.LINK, background_images[qconfig.theme.value]['url'])
+        BottomRightButton(self, layout, FluentIcon.LINK, lambda: webbrowser.open(background_images[qconfig.theme.value]['url']))
 
 
 class HomeCard(ElevatedCardWidget):
@@ -69,7 +71,7 @@ class HomeCard(ElevatedCardWidget):
         # 创建一个较小的占位的 QSpacerItem 用于占用空间，使 link 靠底部对齐
         spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout.addItem(spacer)
-        BottomLeftLinkButton(self, layout, FluentIcon.LINK, url)
+        BottomRightButton(self, layout, FluentIcon.LINK, lambda: webbrowser.open(url))
 
 
 class IconLoaderThread(QThread):

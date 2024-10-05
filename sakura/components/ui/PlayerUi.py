@@ -2,15 +2,16 @@ import threading
 from typing import Callable
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLayout
 from pynput import keyboard
-from qfluentwidgets import ListWidget
+from qfluentwidgets import ListWidget, FluentIcon
 from qfluentwidgets.multimedia import StandardMediaPlayBar
 
 from main import get_file_list, load_json, play_song, PlayCallback
 from sakura.components.SakuraPlayBar import SakuraProgressBar
 from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.components.ui import main_width
+from sakura.components.ui.BottomRightButton import BottomRightButton
 from sakura.config import conf
 from sakura.factory.PlayerFactory import get_player
 from sakura.interface.Player import Player
@@ -70,6 +71,7 @@ class SakuraPlayer:
     cb: Callable[[], None]
     tcb: Callable[[], None]
     is_playing: bool
+    main_parent: QLayout
 
     def __init__(self, song_notes: list, cb: Callable[[], None] = lambda: None, tcb: Callable[[], None] = lambda: None):
         self.song_notes = song_notes
@@ -120,6 +122,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
         self.progressSlider.setRange(0, 100)
         self.currentTimeLabel.setText('0:00')
         self.remainTimeLabel.setText('0:00')
+        BottomRightButton(self, self.rightButtonLayout, FluentIcon.MINIMIZE)
         # 注册全局键盘监听
         register_listener(keyboard.Key.f4, self.togglePlayState, '暂停/继续')
         # 注册 PressListener 监听
