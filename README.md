@@ -13,6 +13,12 @@ English | [简体中文](./README.zh-CN.md)
 
 **Note:** The repository does not include a large collection of music sheets; users need to obtain them on their own. Some sample music sheets are provided for use.
 
+## Screenshots
+
+![image](https://github.com/user-attachments/assets/db417406-0b20-45a6-aa6b-391d3585eca8)
+
+![image](https://github.com/user-attachments/assets/c26e0a2a-8cfa-4436-a9f4-9f20af253691)
+
 ## Download and Installation
 
 Clone the repository using Git:
