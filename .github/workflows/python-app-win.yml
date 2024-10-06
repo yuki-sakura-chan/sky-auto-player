@@ -31,7 +31,6 @@ jobs:
     - name: Build with nuitka
       run: |
         nuitka --standalone --assume-yes-for-downloads --follow-imports --include-package=sakura --include-data-dir=resources=resources --include-data-file=config.yaml=config.yaml --windows-icon-from-ico=resources/static/icon/logo-64x64.ico --windows-console-mode=disable --enable-plugin=pyside6 --mingw64 .\gui.py
-        ls -al
     - name: Create zip
       run: |
         Compress-Archive -Path "gui.dist" -DestinationPath "gui.dist.zip"
