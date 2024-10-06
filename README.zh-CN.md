@@ -13,6 +13,14 @@
 
 **注意：** 项目中不包含海量曲谱，用户需自行获取。仓库中提供了一些示例曲谱供使用。
 
+## 项目截图
+
+![image](https://github.com/user-attachments/assets/db417406-0b20-45a6-aa6b-391d3585eca8)
+
+![image](https://github.com/user-attachments/assets/c26e0a2a-8cfa-4436-a9f4-9f20af253691)
+
+
+
 ## 下载与安装
 
 使用 Git 克隆仓库：
