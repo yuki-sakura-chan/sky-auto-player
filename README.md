@@ -17,7 +17,8 @@ English | [简体中文](./README.zh-CN.md)
 
 ![image](https://github.com/user-attachments/assets/db417406-0b20-45a6-aa6b-391d3585eca8)
 
-![image](https://github.com/user-attachments/assets/c26e0a2a-8cfa-4436-a9f4-9f20af253691)
+![image](https://github.com/user-attachments/assets/3290ca57-b075-4449-8bc6-a93ac2666c5e)
+
 
 ## Download and Installation
 
