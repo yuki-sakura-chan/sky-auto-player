@@ -29,8 +29,8 @@ jobs:
         .\build-gui.bat
     - name: Create zip
       run: |
-        cd .\dist\gui
-        Compress-Archive -Path "dist" -DestinationPath "Sap.zip"
+        cd .\dist
+        Compress-Archive -Path "gui.dist" -DestinationPath "Sap.zip"
     - name: Upload zip
       uses: actions/upload-artifact@v3
       with:
