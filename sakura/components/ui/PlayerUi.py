@@ -1,10 +1,11 @@
+import re
 import threading
 from typing import Callable, Any
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLayout, QWidget
 from pynput import keyboard
-from qfluentwidgets import ListWidget, FluentIcon
+from qfluentwidgets import ListWidget, FluentIcon, SearchLineEdit
 from qfluentwidgets.multimedia import StandardMediaPlayBar
 
 from main import get_file_list, load_json, play_song, PlayCallback
@@ -22,6 +23,8 @@ from sakura.registrar.listener_registers import listener_registers
 
 class PlayerUi(QFrame):
     file_list_box: ListWidget
+    file_list: list
+    search_input: SearchLineEdit
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -41,14 +44,22 @@ class PlayerUi(QFrame):
         # 创建文件信息布局
         file_info_layout = QHBoxLayout()
         file_info_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        search_input = SearchLineEdit()
+        search_input.searchSignal.connect(self.search)
+        search_input.clearSignal.connect(lambda: self.search(''))
+        search_input.installEventFilter(self)
+        self.search_input = search_input
         # 加载文件列表
+        file_list_layout = QVBoxLayout()
         file_list_box = ListWidget()
         file_list_box.setFixedSize(400, 600)
-        file_list = get_file_list(conf.file_path)
-        for index, file in enumerate(file_list):
+        self.file_list = get_file_list(conf.file_path)
+        for index, file in enumerate(self.file_list):
             file_list_box.addItem(file)
         # 添加文件列表到主容器布局
-        file_info_layout.addWidget(file_list_box)
+        file_list_layout.addWidget(search_input)
+        file_list_layout.addWidget(file_list_box)
+        file_info_layout.addLayout(file_list_layout)
         self.file_list_box = file_list_box
         # 创建信息框
         info_frame = QFrame(main_container)
@@ -64,6 +75,20 @@ class PlayerUi(QFrame):
         # 添加播放器到主容器布局
         container_layout.addLayout(file_info_layout)
         container_layout.addLayout(player_layout)
+
+    def search(self, text):
+        self.file_list_box.clear()
+        # 正则表达式匹配
+        for index, file in enumerate(self.file_list):
+            if re.search(rf"{text}", file, re.IGNORECASE):
+                self.file_list_box.addItem(file)
+
+    def eventFilter(self, watched, event):
+        if watched == self.search_input and event.type() == event.Type.KeyPress:
+            if event.key() == Qt.Key.Key_Return:
+                self.search(self.search_input.text())
+                return True
+        return super().eventFilter(watched, event)
 
 
 class SakuraPlayer:
