@@ -50,7 +50,7 @@ def manage_progress_thread(current_time, last_time, is_paused: Callable[[], bool
     while current_second <= last_second:
         if is_paused():
             stop()
-            break
+            return
         current_second = int(current_time() / 1000)
         last_second = int(last_time() / 1000)
         # 更新进度条
@@ -63,4 +63,5 @@ def manage_progress_thread(current_time, last_time, is_paused: Callable[[], bool
             f'{(last_second - current_second) // 60}:{(last_second - current_second) % 60:02d}')
         time.sleep(0.5)
     remain_time_label.setText('0:00')
+    progress_slider.setValue(100)
     stop()

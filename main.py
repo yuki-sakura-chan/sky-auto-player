@@ -57,8 +57,11 @@ class PlayCallback:
         self.termination_cb = termination_cb
 
 
-def play_song(notes, player: Player, key_mapping, play_cb: PlayCallback):
-    prev_note_time = notes[0]['time']
+def play_song(notes, player: Player, key_mapping, play_cb: PlayCallback, get_prev_note_time: Callable[[], int] = None):
+    if get_prev_note_time is not None:
+        prev_note_time = get_prev_note_time()
+    else:
+        prev_note_time = notes[0]['time']
     # 等待第一个音符按下的时间
     for note in notes:
         key = note['key']
