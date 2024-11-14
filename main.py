@@ -57,19 +57,19 @@ class PlayCallback:
         self.termination_cb = termination_cb
 
 
-def play_song(notes, player: Player, key_mapping, play_cb: PlayCallback, get_prev_note_time: Callable[[], int] = None):
-    if get_prev_note_time is not None:
-        prev_note_time = get_prev_note_time()
-    else:
+def play_song(notes, player: Player, key_mapping, play_cb: PlayCallback, prev_note_time=None):
+    if prev_note_time is None:
         prev_note_time = notes[0]['time']
     # 等待第一个音符按下的时间
     for note in notes:
         key = note['key']
         current_time = note['time']
         wait_time = current_time - prev_note_time
+        if wait_time < 0:
+            continue
         time.sleep(wait_time / 1000)
         while play_cb.is_paused():
-            time.sleep(1)
+            time.sleep(0.1)
         # 检查是否终止播放（放在这里是为了让音符播放的时间更准确）
         if play_cb.is_termination():
             play_cb.termination_cb()
@@ -77,7 +77,8 @@ def play_song(notes, player: Player, key_mapping, play_cb: PlayCallback, get_pre
         executor.submit(player.press, key_mapping[key], conf)
         if wait_time > 0:
             for item in listener_registers:
-                item.listener(lambda: current_time,lambda: prev_note_time,lambda: wait_time,lambda: notes[-1]['time'], key, play_cb.is_paused)
+                item.listener(lambda: current_time, lambda: prev_note_time, lambda: wait_time,
+                              lambda: notes[-1]['time'], key, play_cb.is_paused)
         prev_note_time = note['time']
     # 播放完毕后的回调
     play_cb.cb()

@@ -54,9 +54,7 @@ def manage_progress_thread(current_time, last_time, is_paused: Callable[[], bool
         current_second = int(current_time() / 1000)
         last_second = int(last_time() / 1000)
         # 更新进度条
-        progress_slider.setValue(int(current_second / last_second * 100))
-        # 更新当前时间
-        current_time_label.setText(f'{current_second // 60}:{current_second % 60:02d}')
+        progress_slider.setValue(int(current_second))
         # 更新剩余时间
         logger.info("current_second: %s, last_second: %s", current_second, last_second)
         remain_time_label.setText(
