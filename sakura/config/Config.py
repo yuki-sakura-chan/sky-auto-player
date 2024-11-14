@@ -1,4 +1,3 @@
-from decimal import Decimal
 
 from pydantic import BaseModel
 
@@ -18,7 +17,7 @@ class ADB(BaseModel):
 
 
 class Control(BaseModel):
-    speed: Decimal
+    speed: str
 
 class Config(BaseModel):
     file_path: str

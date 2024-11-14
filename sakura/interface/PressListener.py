@@ -5,5 +5,6 @@ from typing import Callable
 class PressListener(ABC):
 
     @abstractmethod
-    def listener(self, current_time, prev_time, wait_time, last_time, key, is_paused: Callable[[], bool]):
+    def listener(self, current_time: Callable[[], int], prev_time: Callable[[], int], wait_time: Callable[[], int],
+                 last_time: Callable[[], int], key, is_paused: Callable[[], bool]):
         pass

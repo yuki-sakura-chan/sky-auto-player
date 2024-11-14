@@ -74,7 +74,7 @@ def play_song(notes, player: Player, key_mapping, play_cb: PlayCallback):
         executor.submit(player.press, key_mapping[key], conf)
         if wait_time > 0:
             for item in listener_registers:
-                item.listener(current_time, prev_note_time, wait_time, notes[-1]['time'], key, play_cb.is_paused)
+                item.listener(lambda: current_time,lambda: prev_note_time,lambda: wait_time,lambda: notes[-1]['time'], key, play_cb.is_paused)
         prev_note_time = note['time']
     # 播放完毕后的回调
     play_cb.cb()

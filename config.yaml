@@ -1,8 +1,7 @@
 adb:
   path: resources/adb/adb.exe
 control:
-  speed: !!python/object/apply:decimal.Decimal
-  - '0.01'
+  speed: '0.01'
 file_path: resources/music/studio/txt
 mapping:
   type: json
