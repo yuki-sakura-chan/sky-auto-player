@@ -1,13 +1,12 @@
+adb:
+  path: resources/adb/adb.exe
+control:
+  speed: !!python/object/apply:decimal.Decimal
+  - '0.01'
 file_path: resources/music/studio/txt
 mapping:
   type: json
 player:
-  type: demo
-  # instruments配置只支持demo player
   instruments: Piano
-  # 设置音量大小
+  type: demo
   volume: 0.5
-# adb 设置
-adb:
-  # adb path 请根据自己的环境配置
-  path: resources/adb/adb.exe

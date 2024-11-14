@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QSizePolicy, QSpacerItem
-from qfluentwidgets import GroupHeaderCardWidget, FluentIcon, ComboBox
+from qfluentwidgets import GroupHeaderCardWidget, FluentIcon, ComboBox, LineEdit
 
 from sakura.config import conf
 
@@ -21,6 +21,13 @@ class SystemSettingsGroup(BaseSettingsGroup):
         combo.currentIndexChanged.connect(self.current_index_changed)
         combo.setCurrentIndex(self.items.index(conf.player.type))
         self.addGroup(FluentIcon.TILES, '播放类型', '选择软件播放类型', combo)
+        speed_control = LineEdit(parent)
+        speed_control.setPlaceholderText('请输入每拍增加的速度')
+        speed_control.setText(str(conf.control.speed))
+        speed_control.textChanged.connect(lambda text: setattr(conf.control, 'speed', float(text)))
+        self.addGroup(FluentIcon.ADD, '速度控制', '设置每拍增加的速度', speed_control)
+
+
 
     def current_index_changed(self, index):
         conf.player.type = self.items[index]

@@ -1,5 +1,6 @@
 import re
 import threading
+from decimal import Decimal
 from typing import Callable, Any
 
 from PySide6.QtCore import Qt
@@ -11,10 +12,12 @@ from qfluentwidgets.multimedia import StandardMediaPlayBar
 from main import get_file_list, load_json, play_song, PlayCallback
 from sakura import children_windows
 from sakura.components.SakuraPlayBar import SakuraProgressBar
+from sakura.components.SpeedControl import SpeedControl
 from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.components.ui import main_width
 from sakura.components.ui.BottomRightButton import BottomRightButton
 from sakura.config import conf
+from sakura.config.sakura_logging import logger
 from sakura.factory.PlayerFactory import get_player
 from sakura.interface.Player import Player
 from sakura.listener import register_listener
@@ -146,6 +149,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
     _is_dragging: bool = False
     _start_position: Any
     temp_width: int
+    wait_time: Decimal = 0
 
     def __init__(self, parent: PlayerUi = None, temp_layout: QVBoxLayout = None):
         super().__init__()
@@ -159,8 +163,24 @@ class SakuraPlayBar(StandardMediaPlayBar):
         BottomRightButton(self, self.rightButtonLayout, FluentIcon.MINIMIZE, self.toggle_layout)
         # 注册全局键盘监听
         register_listener(keyboard.Key.f4, self.togglePlayState, '暂停/继续')
+        register_listener(keyboard.Key.up, self.add_wait_time, '增加等待时间')
+        register_listener(keyboard.Key.down, self.reduce_wait_time, '减少等待时间')
         # 注册 PressListener 监听
         listener_registers.append(SakuraProgressBar(self.progressSlider, self.currentTimeLabel, self.remainTimeLabel))
+        # 注册 SpeedControl 监听
+        listener_registers.append(SpeedControl(lambda: float(self.wait_time)))
+
+    # 增加 wait_time
+    def add_wait_time(self):
+        self.wait_time += Decimal(conf.control.speed)
+        logger.info(f'wait_time: {self.wait_time}')
+
+
+    # 减少 wait_time
+    def reduce_wait_time(self):
+        if self.wait_time > 0:
+            self.wait_time -= Decimal(conf.control.speed)
+        logger.info(f'wait_time: {self.wait_time}')
 
     def toggle_layout(self):
         if self.state == 'normal':

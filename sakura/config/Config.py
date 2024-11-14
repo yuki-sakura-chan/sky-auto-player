@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from pydantic import BaseModel
 
 
@@ -15,8 +17,12 @@ class ADB(BaseModel):
     path: str
 
 
+class Control(BaseModel):
+    speed: Decimal
+
 class Config(BaseModel):
     file_path: str
     adb: ADB
     player: Player
     mapping: Mapping
+    control: Control
