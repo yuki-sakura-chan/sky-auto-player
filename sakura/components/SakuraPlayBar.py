@@ -53,7 +53,6 @@ def manage_progress_thread(current_time, last_time, is_paused: Callable[[], bool
             break
         current_second = int(current_time() / 1000)
         last_second = int(last_time() / 1000)
-        current_second += 1
         # 更新进度条
         progress_slider.setValue(int(current_second / last_second * 100))
         # 更新当前时间
