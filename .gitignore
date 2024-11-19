@@ -4,6 +4,7 @@ __pycache__/
 /resources/**/*.wav
 /resources/music/**/*.txt
 /resources/music/**/*.json
+/resources/music/**/*.skysheet
 build/
 dist/
 *.build/
