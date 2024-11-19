@@ -2,6 +2,7 @@ import codecs
 import json
 import os
 import time
+from itertools import groupby
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable
 
@@ -18,29 +19,33 @@ from sakura.registrar.listener_registers import listener_registers
 paused = True
 
 # 创建一个线程池，可以设置 max_workers 来控制最大并发线程数
-executor = ThreadPoolExecutor(max_workers=10)
+executor = ThreadPoolExecutor(max_workers=15)
 
 
 # 获取指定目录下的文件列表
-def get_file_list(file_path='resources') -> list:
-    file_list = []
-    for root, dirs, files in os.walk(file_path):
-        for file in files:
-            file_list.append(file)
-    return file_list
+def get_file_list(file_path: str = 'resources') -> list[str]:
+    if not os.path.isdir(file_path):
+        raise ValueError(f"Directory does not exist: {file_path}")
+    allowed_extensions = ['.json', '.txt', '.skysheet']
+    return [
+        file
+        for root, dirs, files in os.walk(file_path)
+        for file in files
+        if os.path.splitext(file)[1].lower() in allowed_extensions
+    ]
 
 
 # 加载json文件
-def load_json(file_path) -> dict or None:
+def load_json(file_path: str) -> dict or None:
+    if not os.path.isfile(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
     with open(file_path, 'rb') as f:
-        encoding = chardet.detect(f.read())['encoding']
-
+        encoding = chardet.detect(f.read(1024))['encoding']
     try:
         with codecs.open(file_path, 'r', encoding=encoding) as f:
             return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"读取JSON文件出错: {e}")
-        return None
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        raise ValueError(f"Failed to decode JSON file {file_path} using detected encoding {encoding}: {e}")
 
 
 class PlayCallback:
@@ -57,28 +62,38 @@ class PlayCallback:
         self.termination_cb = termination_cb
 
 
-def play_song(notes, player: Player, key_mapping, play_cb: PlayCallback, prev_note_time=None):
-    if prev_note_time is None:
-        prev_note_time = notes[0]['time']
+def play_song(notes: list[dict], player: Player, key_mapping: dict, play_cb: PlayCallback, prev_note_time: int = None):
+    try:
+        grouped_notes = [
+            (time, [note['key'] for note in group])
+            for time, group in groupby(notes, key=lambda x: x['time'])
+        ]
+    except (IndexError, KeyError, TypeError) as e:
+        raise ValueError(f"Invalid notes data: missing required key {e}")
     # 等待第一个音符按下的时间
-    for note in notes:
-        key = note['key']
-        current_time = note['time']
-        wait_time = current_time - prev_note_time
+    if prev_note_time is None:
+        prev_note_time = grouped_notes[0][0]
+    
+    for i, (current_time, note_group) in enumerate(grouped_notes):
+        wait_time = (current_time - prev_note_time) / 1000
         if wait_time < 0:
             continue
-        time.sleep(wait_time / 1000)
+        
+        time.sleep(wait_time)
         while play_cb.is_paused():
             time.sleep(0.1)
+        
         # 检查是否终止播放（放在这里是为了让音符播放的时间更准确）
         if play_cb.is_termination():
             play_cb.termination_cb()
             return
-        executor.submit(player.press, key_mapping[key], conf)
-        if wait_time > 0:
-            for item in listener_registers:
-                item.listener(lambda: current_time, lambda: prev_note_time, lambda: wait_time,
-                              lambda: notes[-1]['time'], key, play_cb.is_paused)
+        for key in note_group:
+            mapped_key = key_mapping.get(key)
+            if mapped_key:
+                executor.submit(player.press, mapped_key, conf)
+                for item in listener_registers:
+                    item.listener(lambda: current_time, lambda: prev_note_time, lambda: wait_time,
+                        lambda: notes[-1]['time'], mapped_key, play_cb.is_paused,)
         prev_note_time = note['time']
     # 播放完毕后的回调
     play_cb.cb()
