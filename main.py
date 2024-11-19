@@ -65,8 +65,8 @@ class PlayCallback:
 def play_song(notes: list[dict], player: Player, key_mapping: dict, play_cb: PlayCallback, prev_note_time: int = None):
     try:
         grouped_notes = [
-            (time, [note['key'] for note in group])
-            for time, group in groupby(notes, key=lambda x: x['time'])
+            (t, [note['key'] for note in group])
+            for t, group in groupby(notes, key=lambda x: x['time'])
         ]
     except (IndexError, KeyError, TypeError) as e:
         raise ValueError(f"Invalid notes data: missing required key {e}")
@@ -94,7 +94,7 @@ def play_song(notes: list[dict], player: Player, key_mapping: dict, play_cb: Pla
                 for item in listener_registers:
                     item.listener(lambda: current_time, lambda: prev_note_time, lambda: wait_time,
                         lambda: notes[-1]['time'], mapped_key, play_cb.is_paused,)
-        prev_note_time = note['time']
+        prev_note_time = current_time
     # 播放完毕后的回调
     play_cb.cb()
 
