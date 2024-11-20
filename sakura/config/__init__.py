@@ -6,18 +6,28 @@ from .Config import Config
 
 
 def _load_yaml_config():
-    with open(os.path.join(os.getcwd(), 'config.yaml'), 'r', encoding='UTF-8') as f:
-        return yaml.safe_load(f)
+    try:
+        with open(os.path.join(os.getcwd(), 'config.yaml'), 'r', encoding='UTF-8') as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Configuration file not found")
+    except yaml.YAMLError as e:
+        raise ValueError(f"Error parsing YAML configuration: {e}")
 
 
 def save_conf(c: Config):
-    with open(os.path.join(os.getcwd(), 'config.yaml'), 'w', encoding='UTF-8') as f:
-        yaml.dump(c.model_dump(), f)
+    try:
+        with open(os.path.join(os.getcwd(), 'config.yaml'), 'w', encoding='UTF-8') as f:
+            yaml.dump(c.model_dump(), f)
+    except Exception as e:
+        raise IOError(f"Failed to save configuration: {e}")
 
 
 def load_conf() -> Config:
-    data = _load_yaml_config()
-    return Config(**data)
-
+    try:
+        data = _load_yaml_config()
+        return Config(**data)
+    except Exception as e:
+        raise ValueError(f"Failed to load configuration: {e}")
 
 conf = load_conf()
