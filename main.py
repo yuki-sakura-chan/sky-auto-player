@@ -39,9 +39,9 @@ def get_file_list(file_path: str = 'resources') -> list[str]:
 def load_json(file_path: str) -> dict or None:
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
-    with open(file_path, 'rb') as f:
-        encoding = chardet.detect(f.read(1024))['encoding']
     try:
+        with open(file_path, 'rb') as f:
+            encoding = chardet.detect(f.read(1024))['encoding']
         with codecs.open(file_path, 'r', encoding=encoding) as f:
             return json.load(f)
     except (UnicodeDecodeError, json.JSONDecodeError) as e:
@@ -71,13 +71,10 @@ def play_song(notes: list[dict], player: Player, key_mapping: dict, play_cb: Pla
     except (IndexError, KeyError, TypeError) as e:
         raise ValueError(f"Invalid notes data: missing required key {e}")
     # 等待第一个音符按下的时间
-    if prev_note_time is None:
-        prev_note_time = grouped_notes[0][0]
+    prev_note_time = prev_note_time or grouped_notes[0][0]
     
-    for i, (current_time, note_group) in enumerate(grouped_notes):
-        wait_time = (current_time - prev_note_time) / 1000
-        if wait_time < 0:
-            continue
+    for current_time, note_group in grouped_notes:
+        wait_time = max(0, (current_time - prev_note_time) / 1000)
         
         time.sleep(wait_time)
         while play_cb.is_paused():
@@ -88,15 +85,15 @@ def play_song(notes: list[dict], player: Player, key_mapping: dict, play_cb: Pla
             play_cb.termination_cb()
             return
         for key in note_group:
-            mapped_key = key_mapping.get(key)
-            if mapped_key:
+            if mapped_key := key_mapping.get(key):
                 executor.submit(player.press, mapped_key, conf)
                 for item in listener_registers:
                     item.listener(lambda: current_time, lambda: prev_note_time, lambda: wait_time,
                         lambda: notes[-1]['time'], mapped_key, play_cb.is_paused,)
         prev_note_time = current_time
     # 播放完毕后的回调
-    play_cb.cb()
+    if play_cb.cb:
+        play_cb.cb()
 
 
 def listener():
@@ -107,27 +104,32 @@ def listener():
 def main():
     file_path = conf.file_path
     file_list = get_file_list(file_path)
-    for index, file in enumerate(file_list):
-        print(index + 1, file)
-    select_index = input('输入数字选择歌曲：')
-    select_index_int = int(select_index)
-    if select_index_int > len(file_list):
-        print("输入有误，程序结束")
+    for index, file in enumerate(file_list, 1):
+        print(f"{index}. {file}")
+    try:
+        select_index = int(input('Enter the number to select a song: '))
+        if not 1 <= select_index <= len(file_list):
+            raise ValueError("Invalid input")
+    except ValueError:
+        print("Invalid input. Program terminated.")
         return
-    file_name = file_list[select_index_int - 1]
+    file_name = file_list[select_index - 1]
     json_list = load_json(f'{file_path}/{file_name}')
     song_notes = json_list[0]['songNotes']
-    register_listener(keyboard.Key.f4, listener, '暂停/继续')
+    register_listener(keyboard.Key.f4, listener, 'Pause/Resume')
     play_song(song_notes, p, km, PlayCallback(lambda: False, lambda: paused, lambda: None, lambda: None))
     time.sleep(2)
 
 
 if __name__ == '__main__':
-    mapping_dict = {
-        "json": JsonMapper()
-    }
-    mapping_type = conf.mapping.type
-    km = mapping_dict[mapping_type].get_key_mapping()
-    player_type = conf.player.type
-    p = get_player(player_type, conf)
-    main()
+    try:
+        mapping_dict = {
+            "json": JsonMapper()
+        }
+        mapping_type = conf.mapping.type
+        km = mapping_dict[mapping_type].get_key_mapping()
+        player_type = conf.player.type
+        p = get_player(player_type, conf)
+        main()
+    except Exception as e:
+        print(f"An error occurred: {e}")
