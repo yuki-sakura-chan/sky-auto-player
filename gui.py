@@ -10,7 +10,6 @@ from sakura import children_windows
 from sakura.components.ui.Home import Home
 from sakura.components.ui.PlayerUi import PlayerUi
 from sakura.components.ui.Settings import SettingsUi
-from sakura.config import conf, save_conf
 
 
 class Window(FluentWindow):
@@ -42,7 +41,6 @@ class Window(FluentWindow):
 
     def closeEvent(self, event):
         super().closeEvent(event)
-        save_conf(conf)
         for item in children_windows:
             item.close()
 
