@@ -36,7 +36,7 @@ def get_file_list(file_path: str = 'resources') -> list[str]:
 
 
 # 加载json文件
-def load_json(file_path: str) -> dict or None:
+def load_json(file_path: str) -> dict:
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
     try:
@@ -49,13 +49,10 @@ def load_json(file_path: str) -> dict or None:
 
 
 class PlayCallback:
-    is_termination = Callable[[], bool]
-    is_paused = Callable[[], bool]
-    cb = Callable[[], None]
-    termination_cb = Callable[[], None]
-
-    def __init__(self, is_termination: Callable[[], bool] = False, is_paused: Callable[[], bool] = False,
-                 cb: Callable[[], None] = None, termination_cb: Callable[[], None] = None):
+    def __init__(self, is_termination: Callable[[], bool] = lambda: False, 
+                 is_paused: Callable[[], bool] = lambda: False,
+                 cb: Callable[[], None] = None, 
+                 termination_cb: Callable[[], None] = None):
         self.is_termination = is_termination
         self.is_paused = is_paused
         self.cb = cb
@@ -84,24 +81,23 @@ def play_song(notes: list[dict], player: Player, key_mapping: dict, play_cb: Pla
         if play_cb.is_termination():
             play_cb.termination_cb()
             return
+        
         for key in note_group:
             if mapped_key := key_mapping.get(key):
                 executor.submit(player.press, mapped_key, conf)
                 for item in listener_registers:
                     item.listener(lambda: current_time, lambda: prev_note_time, lambda: wait_time,
-                        lambda: notes[-1]['time'], mapped_key, play_cb.is_paused,)
+                        lambda: notes[-1]['time'], mapped_key, play_cb.is_paused)
         prev_note_time = current_time
     # 播放完毕后的回调
     if play_cb.cb:
         play_cb.cb()
 
-
-def listener():
+def listener() -> None:
     global paused
     paused = not paused
 
-
-def main():
+def main() -> None:
     file_path = conf.file_path
     file_list = get_file_list(file_path)
     for index, file in enumerate(file_list, 1):
@@ -113,6 +109,7 @@ def main():
     except ValueError:
         print("Invalid input. Program terminated.")
         return
+    
     file_name = file_list[select_index - 1]
     json_list = load_json(f'{file_path}/{file_name}')
     song_notes = json_list[0]['songNotes']
