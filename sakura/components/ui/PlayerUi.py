@@ -27,7 +27,7 @@ from sakura.registrar.listener_registers import listener_registers
 
 class PlayerUi(QFrame):
     file_list_box: ListWidget
-    file_list: list
+    file_list: list[str]
     search_input: SearchLineEdit
 
     def __init__(self, parent=None):
@@ -48,15 +48,19 @@ class PlayerUi(QFrame):
         # 创建文件信息布局
         file_info_layout = QHBoxLayout()
         file_info_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        
         search_input = SearchLineEdit()
         search_input.searchSignal.connect(self.search)
-        search_input.clearSignal.connect(lambda: self.search(''))
+        search_input.clearSignal.connect(self.clear_search)
+        search_input.textChanged.connect(self.update_search)
+        search_input.returnPressed.connect(self.handle_search_complete)
         search_input.installEventFilter(self)
         self.search_input = search_input
         # 加载文件列表
         file_list_layout = QVBoxLayout()
         file_list_box = ListWidget()
         file_list_box.setFixedSize(400, 600)
+        file_list_box.setSpacing(0.5)
         self.file_list = get_file_list(conf.file_path)
         for index, file in enumerate(self.file_list):
             file_list_box.addItem(file)
@@ -80,19 +84,33 @@ class PlayerUi(QFrame):
         container_layout.addLayout(file_info_layout)
         container_layout.addLayout(player_layout)
 
-    def search(self, text):
+    def clear_search(self) -> None:
+        self.search('')
+
+    def update_search(self, text: str) -> None:
+        self.search(text)
+
+    def search(self, text: str) -> None:
         self.file_list_box.clear()
         # 正则表达式匹配
-        for index, file in enumerate(self.file_list):
-            if re.search(rf"{text}", file, re.IGNORECASE):
-                self.file_list_box.addItem(file)
+        matching_files = [file for file in self.file_list if re.search(rf"{text}", file, re.IGNORECASE)]
+        self.file_list_box.addItems(matching_files)
 
-    def eventFilter(self, watched, event):
+    def handle_search_complete(self) -> None:
+        self.search(self.search_input.text())
+        self.search_input.clearFocus()
+
+    def eventFilter(self, watched, event) -> bool:
         if watched == self.search_input and event.type() == event.Type.KeyPress:
             if event.key() == Qt.Key.Key_Return:
-                self.search(self.search_input.text())
+                self.handle_search_complete()
                 return True
         return super().eventFilter(watched, event)
+
+    def mousePressEvent(self, event) -> None:
+        if not self.search_input.geometry().contains(event.pos()):
+            self.search_input.clearFocus()
+        super().mousePressEvent(event)
 
 
 class SakuraPlayer:
