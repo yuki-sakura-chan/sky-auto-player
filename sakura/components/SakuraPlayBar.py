@@ -18,9 +18,19 @@ class SakuraPlayBaseBar(PressListener):
         self.current_time_label = current_time_label
         self.remain_time_label = remain_time_label
 
-    def listener(self, current_time, prev_time, wait_time, last_time, key, is_paused: Callable[[], bool]):
-        pass
-
+    def listener(self, current_time: Callable[[], int], prev_time: Callable[[], int], 
+             wait_time: Callable[[], int], last_time: Callable[[], int], 
+             key, is_paused: Callable[[], bool]):
+        if not self.thread_is_running:
+            t = threading.Thread(
+                target=manage_progress_thread,
+                args=(current_time, last_time, is_paused, 
+                      self.progress_slider, self.current_time_label,
+                      self.remain_time_label, self.stop),
+                daemon=True
+            )
+            t.start()
+            self.thread_is_running = True
 
 class SakuraProgressBar(SakuraPlayBaseBar):
     thread_is_running = False
@@ -40,26 +50,30 @@ class SakuraProgressBar(SakuraPlayBaseBar):
 
 def manage_progress_thread(current_time, last_time, is_paused: Callable[[], bool], progress_slider: Slider,
                            current_time_label: CaptionLabel, remain_time_label: CaptionLabel, stop: Callable[[], None]):
-    # 计算当前秒
-    current_second = int(current_time() / 1000)
-    # 计算当前秒数的余数
-    remain_second = current_time() % 1000
-    time.sleep(remain_second / 1000)
-    # 计算剩余秒数
-    last_second = int(last_time() / 1000)
-    while current_second <= last_second:
-        if is_paused():
-            stop()
-            return
+    try:
         current_second = int(current_time() / 1000)
         last_second = int(last_time() / 1000)
-        # 更新进度条
-        progress_slider.setValue(int(current_second))
-        # 更新剩余时间
-        logger.info("current_second: %s, last_second: %s", current_second, last_second)
-        remain_time_label.setText(
-            f'{(last_second - current_second) // 60}:{(last_second - current_second) % 60:02d}')
-        time.sleep(0.5)
-    remain_time_label.setText('0:00')
-    progress_slider.setValue(100)
-    stop()
+        
+        while current_second <= last_second:
+            if is_paused():
+                stop()
+                return
+                
+            current_second = int(current_time() / 1000)
+            
+            minutes = current_second // 60
+            seconds = current_second % 60
+            current_time_label.setText(f'{minutes}:{seconds:02d}')
+            
+            remain_seconds = last_second - current_second
+            remain_minutes = remain_seconds // 60
+            remain_seconds = remain_seconds % 60
+            remain_time_label.setText(f'{remain_minutes}:{remain_seconds:02d}')
+            
+            progress_slider.setValue(current_second)
+            
+            time.sleep(0.1)
+    except Exception as e:
+        logger.error(f"Error in progress thread: {e}")
+    finally:
+        stop()

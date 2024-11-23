@@ -14,7 +14,9 @@ from sakura.config import conf
 from sakura.factory.PlayerFactory import get_player
 from sakura.interface.Player import Player
 from sakura.listener import register_listener
+from sakura.config.sakura_logging import logger
 from sakura.registrar.listener_registers import listener_registers
+from sakura.components.TimeManager import TimeManager
 
 paused = True
 
@@ -59,43 +61,51 @@ class PlayCallback:
         self.termination_cb = termination_cb
 
 
-def play_song(notes: list[dict], player: Player, key_mapping: dict, play_cb: PlayCallback, prev_note_time: int = None):
+def play_song(notes: list[dict], player: Player, key_mapping: dict, 
+              play_cb: PlayCallback, time_manager: TimeManager, executor: ThreadPoolExecutor):
     try:
         grouped_notes = [
             (t, [note['key'] for note in group])
             for t, group in groupby(notes, key=lambda x: x['time'])
         ]
-    except (IndexError, KeyError, TypeError) as e:
-        raise ValueError(f"Invalid notes data: missing required key {e}")
-    # 等待第一个音符按下的时间
-    prev_note_time = prev_note_time or grouped_notes[0][0]
-    
-    for current_time, note_group in grouped_notes:
-        wait_time = max(0, (current_time - prev_note_time) / 1000)
         
-        time.sleep(wait_time)
-        while play_cb.is_paused():
-            time.sleep(0.1)
+        current_time = time_manager.get_current_time()
         
-        # 检查是否终止播放（放在这里是为了让音符播放的时间更准确）
-        if play_cb.is_termination():
-            play_cb.termination_cb()
-            return
-        
-        for key in note_group:
-            if mapped_key := key_mapping.get(key):
-                executor.submit(player.press, mapped_key, conf)
-                for item in listener_registers:
-                    item.listener(lambda: current_time, lambda: prev_note_time, lambda: wait_time,
-                        lambda: notes[-1]['time'], mapped_key, play_cb.is_paused)
-        prev_note_time = current_time
-    # 播放完毕后的回调
-    if play_cb.cb:
-        play_cb.cb()
+        for note_time, note_group in grouped_notes:
+            if play_cb.is_termination():
+                return
+                
+            if note_time < current_time:
+                continue
+                
+            wait_time = (note_time - current_time) / 1000
+            time.sleep(wait_time)
+            
+            while play_cb.is_paused():
+                if play_cb.is_termination():
+                    return
+                time.sleep(0.1)
+                
+            current_time = note_time
+            time_manager.set_current_time(current_time)
+            
+            for key in note_group:
+                if mapped_key := key_mapping.get(key):
+                    try:
+                        executor.submit(player.press, mapped_key, conf)
+                    except RuntimeError:
+                        return
+                        
+        if play_cb.cb:
+            play_cb.cb()
+    except Exception as e:
+        logger.error(f"Error in play_song: {e}")
+
 
 def listener() -> None:
     global paused
     paused = not paused
+
 
 def main() -> None:
     file_path = conf.file_path
@@ -114,7 +124,7 @@ def main() -> None:
     json_list = load_json(f'{file_path}/{file_name}')
     song_notes = json_list[0]['songNotes']
     register_listener(keyboard.Key.f4, listener, 'Pause/Resume')
-    play_song(song_notes, p, km, PlayCallback(lambda: False, lambda: paused, lambda: None, lambda: None))
+    play_song(song_notes, p, km, PlayCallback(lambda: False, lambda: paused, lambda: None, lambda: None), time_manager, executor)
     time.sleep(2)
 
 
@@ -127,6 +137,7 @@ if __name__ == '__main__':
         km = mapping_dict[mapping_type].get_key_mapping()
         player_type = conf.player.type
         p = get_player(player_type, conf)
+        time_manager = TimeManager()
         main()
     except Exception as e:
         print(f"An error occurred: {e}")

@@ -23,6 +23,8 @@ from sakura.factory.PlayerFactory import get_player
 from sakura.interface.Player import Player
 from sakura.listener import register_listener
 from sakura.registrar.listener_registers import listener_registers
+from concurrent.futures import ThreadPoolExecutor
+from sakura.components.TimeManager import TimeManager
 
 
 class PlayerUi(QFrame):
@@ -114,49 +116,109 @@ class PlayerUi(QFrame):
 
 
 class SakuraPlayer:
-    song_notes: list
-    is_finished: bool = False
-    cb: Callable[[], None]
-    tcb: Callable[[], None]
-    is_playing: bool
-    main_parent: QLayout
-    last_time: int
-
-    def __init__(self, song_notes: list, cb: Callable[[], None] = lambda: None, tcb: Callable[[], None] = lambda: None):
+    def __init__(self, song_notes: list, time_manager: TimeManager, cb: Callable[[], None] = lambda: None):
         self.song_notes = song_notes
+        self.time_manager = time_manager
         self.is_playing = False
+        self.is_finished = False
         self.cb = cb
-        self.tcb = tcb
-
-    def play(self, player: Player, key_mapping: dict, slider_value=None):
+        self.last_time = 0
+        self.current_executor = None
+        self.current_thread = None
+        self.key_mapping = None
+        self.player = None
+        
+    def play(self, player: Player, key_mapping: dict, start_time: int = None):
+        self.player = player
+        self.key_mapping = key_mapping
+        self.stop()
         time.sleep(0.1)
+        
         self.is_finished = False
         self.is_playing = True
-        play_cb = PlayCallback(lambda: self.is_finished, lambda: not self.is_playing, self.callback,
-                               self.termination_cb)
-        player_thread = threading.Thread(target=play_song,
-                                         args=(self.song_notes, player, key_mapping, play_cb, slider_value * 1000,))
-        player_thread.daemon = True
-        player_thread.start()
+        
+        if start_time is not None:
+            self.time_manager.set_current_time(start_time * 1000)
+        else:
+            self.time_manager.set_current_time(0)
+            
+        self.time_manager.set_duration(self.last_time)
+        self.time_manager.set_playing(True)
+        
+        filtered_notes = [
+            note for note in self.song_notes 
+            if note['time'] >= self.time_manager.get_current_time()
+        ]
+        
+        play_cb = PlayCallback(
+            lambda: self.is_finished,
+            lambda: not self.is_playing,
+            self.callback,
+            self.termination_cb
+        )
+        
+        self.current_executor = ThreadPoolExecutor(max_workers=4)
+        self.current_thread = threading.Thread(
+            target=play_song,
+            args=(filtered_notes, player, key_mapping, play_cb, self.time_manager, self.current_executor)
+        )
+        self.current_thread.daemon = True
+        self.current_thread.start()
 
     def pause(self):
         self.is_playing = False
+        self.time_manager.set_playing(False)
 
     def stop(self):
-        # 继续播放，以保证可以执行回调
-        self.is_playing = True
-        # 终止线程
         self.is_finished = True
+        self.is_playing = False
+        if self.current_executor:
+            self.current_executor.shutdown(wait=False)
+            self.current_executor = None
+        if self.current_thread and self.current_thread.is_alive():
+            self.current_thread.join(timeout=0.1)
+        self.current_thread = None
 
     def continue_play(self):
+        if not self.player or not self.key_mapping:
+            logger.error("Player or key mapping not initialized")
+            return
+            
+        self.stop()
+        time.sleep(0.1)
+            
         self.is_playing = True
+        self.is_finished = False
+        self.time_manager.set_playing(True)
+        
+        current_time = self.time_manager.get_current_time()
+        filtered_notes = [
+            note for note in self.song_notes 
+            if note['time'] >= current_time
+        ]
+        
+        play_cb = PlayCallback(
+            lambda: self.is_finished,
+            lambda: not self.is_playing,
+            self.callback,
+            self.termination_cb
+        )
+        
+        self.current_executor = ThreadPoolExecutor(max_workers=4)
+        self.current_thread = threading.Thread(
+            target=play_song,
+            args=(filtered_notes, self.player, self.key_mapping, 
+                  play_cb, self.time_manager, self.current_executor)
+        )
+        self.current_thread.daemon = True
+        self.current_thread.start()
 
     def callback(self):
         self.is_playing = False
         self.cb()
 
     def termination_cb(self):
-        self.tcb()
+        pass
 
 
 class SakuraPlayBar(StandardMediaPlayBar):
@@ -172,6 +234,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
     temp_width: int
     wait_time: Decimal = 0
     progress_slider_clicked: bool = False
+    user_is_seeking: bool = False
 
     def __init__(self, parent: PlayerUi = None, temp_layout: QVBoxLayout = None):
         super().__init__()
@@ -182,24 +245,65 @@ class SakuraPlayBar(StandardMediaPlayBar):
         self.currentTimeLabel.setText('0:00')
         self.remainTimeLabel.setText('0:00')
         self.rightButtonLayout.setContentsMargins(0, 0, 8, 0)
-        self.progressSlider.clicked.connect(self.progress_slider_clicked_event)
-        self.progressSlider.valueChanged.connect(self.progress_slider_changed_event)
+        self.progressSlider.sliderPressed.connect(self.progress_slider_pressed)
+        self.progressSlider.sliderReleased.connect(self.progress_slider_released)
+        self.progressSlider.valueChanged.connect(self.progress_slider_value_changed)
         BottomRightButton(self, self.rightButtonLayout, FluentIcon.MINIMIZE, self.toggle_layout)
         # 注册全局键盘监听
         register_listener(keyboard.Key.f4, self.togglePlayState, '暂停/继续')
         register_listener(keyboard.Key.up, self.add_wait_time, '增加等待时间')
         register_listener(keyboard.Key.down, self.reduce_wait_time, '减少等待时间')
-        # 注册 PressListener 监听
-        listener_registers.append(SakuraProgressBar(self.progressSlider, self.currentTimeLabel, self.remainTimeLabel))
-        # 注册 SpeedControl 监听
+        # 注 SpeedControl 监听
         listener_registers.append(SpeedControl(lambda: float(self.wait_time)))
-
-
-    def progress_slider_clicked_event(self):
+        self.time_manager = TimeManager()
+        self.time_manager.timeChanged.connect(self.update_progress)
+        
+        # Add mouse click handling for the progress sliderё
+        self.progressSlider.mousePressEvent = self.progress_slider_mouse_press
+        
+    def progress_slider_pressed(self):
         self.progress_slider_clicked = True
+        self.user_is_seeking = True
 
-    def progress_slider_changed_event(self, value):
-        self.currentTimeLabel.setText(f'{value // 60}:{value % 60:02d}')
+    def progress_slider_released(self):
+        if not self.progress_slider_clicked:
+            return
+            
+        value = self.progressSlider.value()
+        current_player = self.sakura_player_dict.get(self.playing_name)
+        
+        if current_player:
+            was_playing = self.is_playing
+            current_player.stop()
+            time.sleep(0.1)
+            
+            self.time_manager.force_set_time(value * 1000)
+            
+            if was_playing:
+                current_player.play(
+                    get_player(conf.player.type, conf),
+                    self.get_key_mapping(),
+                    value
+                )
+                self.is_playing = True
+                self.playButton.setPlay(True)
+                self.time_manager.set_playing(True)
+        
+        self.progress_slider_clicked = False
+        self.user_is_seeking = False
+
+    def progress_slider_value_changed(self, value):
+        if self.user_is_seeking:
+            minutes = value // 60
+            seconds = value % 60
+            self.currentTimeLabel.setText(f'{minutes}:{seconds:02d}')
+            
+            if self.playing_name and self.playing_name in self.sakura_player_dict:
+                total_seconds = self.sakura_player_dict[self.playing_name].last_time // 1000
+                remain_seconds = total_seconds - value
+                remain_minutes = remain_seconds // 60
+                remain_seconds = remain_seconds % 60
+                self.remainTimeLabel.setText(f'{remain_minutes}:{remain_seconds:02d}')
 
     # 增加 wait_time
     def add_wait_time(self):
@@ -262,50 +366,50 @@ class SakuraPlayBar(StandardMediaPlayBar):
     def pause(self):
         self.playButton.setPlay(False)
         self.is_playing = False
-        self.sakura_player_dict[self.playing_name].pause()
+        if self.playing_name in self.sakura_player_dict:
+            self.sakura_player_dict[self.playing_name].pause()
+            self.time_manager.set_playing(False)
 
     def play(self):
         current_item = self.file_list_box.currentItem()
         if current_item is None:
             return
-        player = get_player(conf.player.type, conf)
-        mapping_type = conf.mapping.type
-        mapping_dict = {
-            "json": JsonMapper()
-        }
-        key_mapping = mapping_dict[mapping_type].get_key_mapping()
+        
         file_name = current_item.text()
+        
         if self.playing_name == file_name and not self.progress_slider_clicked:
             self.playButton.setPlay(True)
             self.is_playing = True
-            self.sakura_player_dict[file_name].continue_play()
+            if file_name in self.sakura_player_dict:
+                self.sakura_player_dict[file_name].continue_play()
+                self.time_manager.set_playing(True)
             return
-        self.playing_name = file_name
-        # 播放新的歌曲时，终止之前的播放器
-        if self.sakura_player_dict:
-            for p in self.sakura_player_dict.values():
-                p.stop()
-        # 如果 sakura_player_dict 中已经有了这个播放器，直接播放
-        if file_name in self.sakura_player_dict:
+
+        try:
+            json_data = load_json(f'{conf.file_path}/{file_name}')
+            song_notes = json_data[0]['songNotes']
+            
+            if self.playing_name in self.sakura_player_dict:
+                self.sakura_player_dict[self.playing_name].stop()
+            
+            sakura_player = SakuraPlayer(song_notes, self.time_manager, self.callback)
+            sakura_player.last_time = song_notes[-1]['time']
+            self.sakura_player_dict[file_name] = sakura_player
+            
             self.playButton.setPlay(True)
             self.is_playing = True
-            sakura_player = self.sakura_player_dict[file_name]
-            self.progressSlider.setRange(0, int(sakura_player.last_time / 1000))
-            sakura_player.play(player, key_mapping, self.progressSlider.value() )
-            self.progressSlider.setValue(0)
-            self.progress_slider_clicked = False
-            return
-        json_data = load_json(f'{conf.file_path}/{file_name}')
-        song_notes = json_data[0]['songNotes']
-        last_time = song_notes[-1]['time']
-        self.progressSlider.setRange(0, int(last_time / 1000))
-        self.progressSlider.setValue(0)
-        sakura_player = SakuraPlayer(song_notes, self.callback, self.termination_cb)
-        sakura_player.play(player, key_mapping, self.progressSlider.value())
-        sakura_player.last_time = last_time
-        self.sakura_player_dict[file_name] = sakura_player
-        self.playButton.setPlay(True)
-        self.is_playing = True
+            self.playing_name = file_name
+            
+            total_seconds = sakura_player.last_time // 1000
+            self.progressSlider.setRange(0, total_seconds)
+            
+            sakura_player.play(
+                get_player(conf.player.type, conf),
+                self.get_key_mapping()
+            )
+            
+        except Exception as e:
+            logger.error(f"Error playing file {file_name}: {e}")
 
     # 当播放完毕时，回调当前接口
     def callback(self):
@@ -316,3 +420,41 @@ class SakuraPlayBar(StandardMediaPlayBar):
     # 手动终止播放时，回调当前接口
     def termination_cb(self):
         pass
+
+    def get_key_mapping(self):
+        mapping_type = conf.mapping.type
+        mapping_dict = {
+            "json": JsonMapper()
+        }
+        return mapping_dict[mapping_type].get_key_mapping()
+
+    def update_progress(self, current_time_ms: int):
+        if not self.user_is_seeking:
+            current_seconds = current_time_ms // 1000
+            
+            self.progressSlider.setValue(current_seconds)
+            
+            minutes = current_seconds // 60
+            seconds = current_seconds % 60
+            self.currentTimeLabel.setText(f'{minutes}:{seconds:02d}')
+            
+            if self.playing_name and self.playing_name in self.sakura_player_dict:
+                total_seconds = self.sakura_player_dict[self.playing_name].last_time // 1000
+                remain_seconds = total_seconds - current_seconds
+                remain_minutes = remain_seconds // 60
+                remain_seconds = remain_seconds % 60
+                self.remainTimeLabel.setText(f'{remain_minutes}:{remain_seconds:02d}')
+
+    def progress_slider_mouse_press(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            # Calculate the clicked position as a percentage
+            value = event.position().x() / self.progressSlider.width()
+            new_value = int(value * self.progressSlider.maximum())
+            
+            # Update the slider value
+            self.progressSlider.setValue(new_value)
+            
+            # Handle the position change similar to slider release
+            self.progress_slider_clicked = True
+            self.user_is_seeking = True
+            self.progress_slider_released()
