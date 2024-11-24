@@ -2,9 +2,7 @@ import codecs
 import json
 import os
 import time
-from itertools import groupby
 from concurrent.futures import ThreadPoolExecutor
-from typing import Callable
 
 import chardet
 from pynput import keyboard
@@ -12,11 +10,9 @@ from pynput import keyboard
 from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.config import conf
 from sakura.factory.PlayerFactory import get_player
-from sakura.interface.Player import Player
 from sakura.listener import register_listener
-from sakura.config.sakura_logging import logger
-from sakura.registrar.listener_registers import listener_registers
 from sakura.components.TimeManager import TimeManager
+from sakura.components.player.SakuraPlayer import PlayCallback, play_song
 
 paused = True
 
@@ -48,58 +44,6 @@ def load_json(file_path: str) -> dict:
             return json.load(f)
     except (UnicodeDecodeError, json.JSONDecodeError) as e:
         raise ValueError(f"Failed to decode JSON file {file_path} using detected encoding {encoding}: {e}")
-
-
-class PlayCallback:
-    def __init__(self, is_termination: Callable[[], bool] = lambda: False, 
-                 is_paused: Callable[[], bool] = lambda: False,
-                 cb: Callable[[], None] = None, 
-                 termination_cb: Callable[[], None] = None):
-        self.is_termination = is_termination
-        self.is_paused = is_paused
-        self.cb = cb
-        self.termination_cb = termination_cb
-
-
-def play_song(notes: list[dict], player: Player, key_mapping: dict, 
-              play_cb: PlayCallback, time_manager: TimeManager, executor: ThreadPoolExecutor):
-    try:
-        grouped_notes = [
-            (t, [note['key'] for note in group])
-            for t, group in groupby(notes, key=lambda x: x['time'])
-        ]
-        
-        current_time = time_manager.get_current_time()
-        
-        for note_time, note_group in grouped_notes:
-            if play_cb.is_termination():
-                return
-                
-            if note_time < current_time:
-                continue
-                
-            wait_time = (note_time - current_time) / 1000
-            time.sleep(wait_time)
-            
-            while play_cb.is_paused():
-                if play_cb.is_termination():
-                    return
-                time.sleep(0.1)
-                
-            current_time = note_time
-            time_manager.set_current_time(current_time)
-            
-            for key in note_group:
-                if mapped_key := key_mapping.get(key):
-                    try:
-                        executor.submit(player.press, mapped_key, conf)
-                    except RuntimeError:
-                        return
-                        
-        if play_cb.cb:
-            play_cb.cb()
-    except Exception as e:
-        logger.error(f"Error in play_song: {e}")
 
 
 def listener() -> None:
