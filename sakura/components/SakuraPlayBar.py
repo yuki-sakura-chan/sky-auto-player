@@ -240,6 +240,10 @@ class SakuraPlayBar(StandardMediaPlayBar):
         
         file_name = current_item.text()
         
+        # Clearing resources from the previous song
+        player = get_player(conf.player.type, conf)
+        player.cleanup()
+        
         if self.playing_name == file_name and not self.progress_slider_clicked:
             self.playButton.setPlay(True)
             self.is_playing = True
@@ -248,12 +252,13 @@ class SakuraPlayBar(StandardMediaPlayBar):
                 self.time_manager.set_playing(True)
             return
 
-        try:
+        try:            
             json_data = load_json(f'{conf.file_path}/{file_name}')
             song_notes = json_data[0]['songNotes']
             
             if self.playing_name in self.sakura_player_dict:
                 self.sakura_player_dict[self.playing_name].stop()
+                del self.sakura_player_dict[self.playing_name]
             
             sakura_player = SakuraPlayer(song_notes, self.time_manager, self.callback)
             sakura_player.last_time = song_notes[-1]['time']
