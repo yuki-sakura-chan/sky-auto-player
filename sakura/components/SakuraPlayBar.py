@@ -15,7 +15,7 @@ from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.components.ui import main_width
 from sakura.components.ui.BottomRightButton import BottomRightButton
 from sakura.components.SpeedControl import SpeedControl
-from sakura.config import conf
+from sakura.config import conf, save_conf
 from sakura.config.sakura_logging import logger
 from sakura.factory.PlayerFactory import get_player
 from sakura.interface.PressListener import PressListener
@@ -98,6 +98,12 @@ class SakuraPlayBar(StandardMediaPlayBar):
     wait_time: Decimal = 0
     progress_slider_clicked: bool = False
     user_is_seeking: bool = False
+    
+    _user_volume: float = 0
+    _is_muted: bool = False
+    _last_volume_change = None
+    _volume_timer = None
+    _volume_lock = threading.Lock()
 
     def __init__(self, file_list_box: ListWidget = None, temp_layout: QVBoxLayout = None):
         super().__init__()
@@ -124,6 +130,19 @@ class SakuraPlayBar(StandardMediaPlayBar):
         # Add mouse click handling for the progress slider
         self.progressSlider.mousePressEvent = self.progress_slider_mouse_press
         
+        try:
+            # Load initial volume from config
+            self._user_volume = float(conf.player.volume)
+            self._is_muted = False
+            
+            self.volumeButton.setVolume(int(self._user_volume * 100))
+            # Connect volume signals
+            self.volumeButton.volumeChanged.connect(self._handle_volume_change)
+            self.volumeButton.mutedChanged.connect(self._handle_mute_change)
+            logger.info(f"Volume controls initialized with volume: {self._user_volume}")
+        except Exception as e:
+            logger.error(f"Failed to initialize volume controls: {e}")
+
     def progress_slider_pressed(self):
         self.progress_slider_clicked = True
         self.user_is_seeking = True
@@ -326,6 +345,86 @@ class SakuraPlayBar(StandardMediaPlayBar):
             self.progress_slider_clicked = True
             self.user_is_seeking = True
             self.progress_slider_released()
+
+    def _delayed_volume_logging(self):
+        """Thread function to handle delayed volume logging"""
+        while True:
+            with self._volume_lock:
+                if self._last_volume_change is None:
+                    return
+                
+                current_volume = self._last_volume_change
+                self._last_volume_change = None
+            
+            time.sleep(1)
+            
+            with self._volume_lock:
+                if self._last_volume_change is not None:
+                    continue
+                if self._is_muted:
+                    logger.info(f"Final volume state: Muted (saved volume: {self._user_volume})")
+                else:
+                    logger.info(f"Final volume state: {current_volume}")
+                return
+
+    def _start_volume_timer(self, volume: float):
+        """Start or restart the volume logging timer"""
+        with self._volume_lock:
+            self._last_volume_change = volume
+            
+            if self._volume_timer and self._volume_timer.is_alive():
+                return
+                
+            self._volume_timer = threading.Thread(
+                target=self._delayed_volume_logging,
+                daemon=True
+            )
+            self._volume_timer.start()
+
+    def _handle_volume_change(self, value: int):
+        """Handle volume slider changes"""
+        try:
+            volume = float(value) / 100.0
+            
+            # Only save to config if not muted
+            if not self._is_muted:
+                self._user_volume = volume
+                conf.player.volume = volume
+                save_conf(conf)
+                
+                # Start delayed logging
+                self._start_volume_timer(volume)
+            self._update_player_volume(volume)
+        except Exception as e:
+            logger.error(f"Failed to handle volume change: {e}")
+
+    def _handle_mute_change(self, is_muted: bool):
+        """Handle mute button toggles"""
+        try:
+            self._is_muted = is_muted
+            if is_muted:
+                # When muting, set volume to 0 without saving to config
+                self.volumeButton.setVolume(0)
+                self._update_player_volume(0.0)
+            else:
+                # When unmuting, restore to last saved volume
+                self.volumeButton.setVolume(int(self._user_volume * 100))
+                self._update_player_volume(self._user_volume)
+            # Start delayed logging
+            self._start_volume_timer(0.0 if is_muted else self._user_volume)
+        except Exception as e:
+            logger.error(f"Failed to handle mute change: {e}")
+
+    def _update_player_volume(self, volume: float):
+        """Update volume for current player if exists"""
+        try:
+            if self.playing_name in self.sakura_player_dict:
+                current_player = self.sakura_player_dict[self.playing_name]
+                if hasattr(current_player, 'player') and hasattr(current_player.player, 'audio'):
+                    for sound in current_player.player.audio:
+                        sound.set_volume(volume)
+        except Exception as e:
+            logger.error(f"Failed to update player volume: {e}")
 
     def __del__(self):
         if hasattr(self, 'time_manager'):

@@ -91,7 +91,7 @@ class DemoPlayer(Player):
                         raise FileNotFoundError(f"Sound file not found: {sound_file}")
                     
                     sound = pygame.mixer.Sound(sound_file)
-                    sound.set_volume(conf.player.volume)  # Unified volume for all notes
+                    sound.set_volume(conf.player.volume)  # Set volume from config
                     self.audio.append(sound)
                 
                 self._audio_initialized = True
