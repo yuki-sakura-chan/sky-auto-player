@@ -147,7 +147,8 @@ class SakuraPlayer:
             self.termination_cb
         )
         
-        self.current_executor = ThreadPoolExecutor(max_workers=4)
+        # 创建一个线程池，可以设置 max_workers 来控制最大并发线程数
+        self.current_executor = ThreadPoolExecutor(max_workers=15)
         self.current_thread = threading.Thread(
             target=play_song,
             args=(filtered_notes, self.player, self.key_mapping, 
