@@ -2,7 +2,6 @@ import codecs
 import json
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor
 
 import chardet
 from pynput import keyboard
@@ -14,11 +13,8 @@ from sakura.listener import register_listener
 from sakura.components.TimeManager import TimeManager
 from sakura.components.player.SakuraPlayer import PlayCallback, play_song
 
+
 paused = True
-
-# 创建一个线程池，可以设置 max_workers 来控制最大并发线程数
-executor = ThreadPoolExecutor(max_workers=15)
-
 
 # 获取指定目录下的文件列表
 def get_file_list(file_path: str = 'resources') -> list[str]:
@@ -68,7 +64,7 @@ def main() -> None:
     json_list = load_json(f'{file_path}/{file_name}')
     song_notes = json_list[0]['songNotes']
     register_listener(keyboard.Key.f4, listener, 'Pause/Resume')
-    play_song(song_notes, p, km, PlayCallback(lambda: False, lambda: paused, lambda: None, lambda: None), time_manager, executor)
+    play_song(song_notes, p, km, PlayCallback(lambda: False, lambda: paused, lambda: None, lambda: None), time_manager)
     time.sleep(2)
 
 
