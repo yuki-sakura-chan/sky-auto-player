@@ -146,6 +146,8 @@ class SakuraPlayBar(StandardMediaPlayBar):
     def progress_slider_pressed(self):
         self.progress_slider_clicked = True
         self.user_is_seeking = True
+        if self.is_playing:
+            self.time_manager.set_playing(False)
 
     def progress_slider_released(self):
         if not self.progress_slider_clicked:
@@ -156,36 +158,30 @@ class SakuraPlayBar(StandardMediaPlayBar):
         
         if current_player:
             was_playing = self.is_playing
-            current_player.stop()
-            time.sleep(0.1)
             
             self.time_manager.force_set_time(value * 1000)
             
             if was_playing:
-                current_player.play(
-                    get_player(conf.player.type, conf),
-                    self.get_key_mapping(),
-                    value
-                )
-                self.is_playing = True
-                self.playButton.setPlay(True)
                 self.time_manager.set_playing(True)
+                current_player.continue_play()
         
         self.progress_slider_clicked = False
         self.user_is_seeking = False
 
     def progress_slider_value_changed(self, value):
-        if self.user_is_seeking:
-            minutes = value // 60
-            seconds = value % 60
-            self.currentTimeLabel.setText(f'{minutes}:{seconds:02d}')
-            
-            if self.playing_name and self.playing_name in self.sakura_player_dict:
-                total_seconds = self.sakura_player_dict[self.playing_name].last_time // 1000
-                remain_seconds = total_seconds - value
-                remain_minutes = remain_seconds // 60
-                remain_seconds = remain_seconds % 60
-                self.remainTimeLabel.setText(f'{remain_minutes}:{remain_seconds:02d}')
+        if not self.user_is_seeking:
+            return
+        
+        minutes = value // 60
+        seconds = value % 60
+        self.currentTimeLabel.setText(f'{minutes}:{seconds:02d}')
+        
+        if self.playing_name and self.playing_name in self.sakura_player_dict:
+            total_seconds = self.sakura_player_dict[self.playing_name].last_time // 1000
+            remain_seconds = total_seconds - value
+            remain_minutes = remain_seconds // 60
+            remain_seconds = remain_seconds % 60
+            self.remainTimeLabel.setText(f'{remain_minutes}:{remain_seconds:02d}')
 
     # 增加 wait_time
     def add_wait_time(self):
@@ -402,14 +398,10 @@ class SakuraPlayBar(StandardMediaPlayBar):
         """Handle mute button toggles"""
         try:
             self._is_muted = is_muted
-            if is_muted:
-                # When muting, set volume to 0 without saving to config
-                self.volumeButton.setVolume(0)
-                self._update_player_volume(0.0)
-            else:
-                # When unmuting, restore to last saved volume
-                self.volumeButton.setVolume(int(self._user_volume * 100))
-                self._update_player_volume(self._user_volume)
+            volume = 0.0 if is_muted else self._user_volume
+            self.volumeButton.setVolume(0 if is_muted else int(self._user_volume * 100))
+            self._update_player_volume(volume)
+            self._start_volume_timer(volume)
             # Start delayed logging
             self._start_volume_timer(0.0 if is_muted else self._user_volume)
         except Exception as e:

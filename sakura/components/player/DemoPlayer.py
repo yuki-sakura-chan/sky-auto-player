@@ -1,9 +1,12 @@
 import os
+from functools import lru_cache
+from typing import Dict, List, Optional
 
 import pygame
 
 from sakura.interface.Player import Player
 from sakura.config.sakura_logging import logger
+
 
 class DemoPlayer(Player):
     key_mapping = {
@@ -15,10 +18,12 @@ class DemoPlayer(Player):
     def __init__(self, conf):
         super().__init__(conf)
         self._audio_initialized = False
-        self.audio = []
-        self.channels = []
+        self._audio_cache: Dict[str, pygame.mixer.Sound] = {}
+        self.audio: List[Optional[pygame.mixer.Sound]] = []
+        self.channels: List[pygame.mixer.Channel] = []
         self.num_channels = 0
         self._channel_index = 0
+        self._base_volume = conf.player.volume
         
         pygame.init()
         
@@ -74,6 +79,13 @@ class DemoPlayer(Player):
         
         self._initialize_audio(conf)
 
+    @lru_cache(maxsize=15)
+    def _load_sound(self, sound_path: str) -> pygame.mixer.Sound:
+        """Load and cache sound file"""
+        if not os.path.exists(sound_path):
+            raise FileNotFoundError(f"Sound file not found: {sound_path}")
+        return pygame.mixer.Sound(sound_path)
+
     def _initialize_audio(self, conf):
         try:
             if not self._audio_initialized:
@@ -85,19 +97,34 @@ class DemoPlayer(Player):
                     f'resources/Instruments/{conf.player.instruments}'
                 )
                 
+                # Initialize audio list with None values
+                self.audio = [None] * 15
+                
+                # Load sounds on demand
                 for i in range(15):
                     sound_file = os.path.join(instruments_path, f'{i}.wav')
-                    if not os.path.exists(sound_file):
-                        raise FileNotFoundError(f"Sound file not found: {sound_file}")
-                    
-                    sound = pygame.mixer.Sound(sound_file)
-                    sound.set_volume(conf.player.volume)  # Set volume from config
-                    self.audio.append(sound)
+                    sound = self._load_sound(sound_file)
+                    sound.set_volume(self._base_volume)
+                    self.audio[i] = sound
+                    self._audio_cache[str(i)] = sound
                 
                 self._audio_initialized = True
         except Exception as e:
             logger.error(f"Failed to initialize audio: {e}")
             raise
+
+    def _find_available_channel(self) -> pygame.mixer.Channel:
+        """Find first available channel or least recently used one"""
+        # Try to find a free channel first
+        for i in range(self.num_channels):
+            channel_index = (self._channel_index + i) % self.num_channels
+            if not self.channels[channel_index].get_busy():
+                self._channel_index = channel_index
+                return self.channels[channel_index]
+        
+        # If no free channels, use round-robin
+        self._channel_index = (self._channel_index + 1) % self.num_channels
+        return self.channels[self._channel_index]
 
     def press(self, key, conf):
         try:
@@ -105,14 +132,26 @@ class DemoPlayer(Player):
                 self._initialize_audio(conf)
                 
             note = self.key_mapping[key]
-            channel = self.channels[self._channel_index]
+            sound = self._audio_cache.get(note)
             
-            channel.play(self.audio[int(note)])
-            
-            self._channel_index = (self._channel_index + 1) % self.num_channels
+            if sound is None:
+                return
+                
+            channel = self._find_available_channel()
+            channel.play(sound)
             
         except Exception as e:
             logger.error(f"Error playing audio sound: {e}")
+
+    def set_volume(self, volume: float):
+        """Set volume for all sounds"""
+        try:
+            self._base_volume = volume
+            for sound in self._audio_cache.values():
+                if sound:
+                    sound.set_volume(volume)
+        except Exception as e:
+            logger.error(f"Error setting volume: {e}")
 
     def cleanup(self):
         """Proper cleanup of audio resources"""
@@ -120,9 +159,19 @@ class DemoPlayer(Player):
             if self._audio_initialized and pygame.mixer.get_init():
                 pygame.mixer.stop()
                 
-                for sound in self.audio:
-                    del sound
-                self.audio.clear()
+                # Clear all channels
+                for channel in self.channels:
+                    channel.stop()
+                
+                # Clear sound cache
+                self._load_sound.cache_clear()
+                
+                # Clear and delete sounds
+                for sound in self._audio_cache.values():
+                    if sound:
+                        del sound
+                self._audio_cache.clear()
+                self.audio = [None] * 15
                 self.channels.clear()
                 
                 self._audio_initialized = False
