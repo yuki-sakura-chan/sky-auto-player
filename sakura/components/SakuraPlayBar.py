@@ -83,58 +83,9 @@ class SakuraPlayBar(StandardMediaPlayBar):
         except Exception as e:
             logger.error(f"Failed to initialize volume controls: {e}")
 
-    def progress_slider_pressed(self):
-        self.progress_slider_clicked = True
-        self.user_is_seeking = True
-        if self.is_playing:
-            self.time_manager.set_playing(False)
-
-    def progress_slider_released(self):
-        if not self.progress_slider_clicked:
-            return
-            
-        value = self.progressSlider.value()
-        current_player = self.sakura_player_dict.get(self.playing_name)
-        
-        if current_player:
-            was_playing = self.is_playing
-            
-            self.time_manager.force_set_time(value * 1000)
-            
-            if was_playing:
-                self.time_manager.set_playing(True)
-                current_player.continue_play()
-        
-        self.progress_slider_clicked = False
-        self.user_is_seeking = False
-
-    def progress_slider_value_changed(self, value):
-        if not self.user_is_seeking:
-            return
-        
-        minutes = value // 60
-        seconds = value % 60
-        self.currentTimeLabel.setText(f'{minutes}:{seconds:02d}')
-        
-        if self.playing_name and self.playing_name in self.sakura_player_dict:
-            total_seconds = self.sakura_player_dict[self.playing_name].last_time // 1000
-            remain_seconds = total_seconds - value
-            remain_minutes = remain_seconds // 60
-            remain_seconds = remain_seconds % 60
-            self.remainTimeLabel.setText(f'{remain_minutes}:{remain_seconds:02d}')
-
-    # 增加 wait_time
-    def add_wait_time(self):
-        self.wait_time += Decimal(conf.control.speed)
-        logger.info(f'wait_time: {self.wait_time}')
-
-    # 减少 wait_time
-    def reduce_wait_time(self):
-        if self.wait_time > 0:
-            self.wait_time -= Decimal(conf.control.speed)
-        logger.info(f'wait_time: {self.wait_time}')
-
+    # Layout Control Methods
     def toggle_layout(self):
+        """Toggle between normal and mini player layouts"""
         if self.state == 'normal':
             self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
             self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -150,8 +101,13 @@ class SakuraPlayBar(StandardMediaPlayBar):
             self.temp_layout.addWidget(self)
             children_windows.remove(self)
 
-    # 鼠标按下事件，记录初始位置
     def mousePressEvent(self, event):
+        """
+        Handle mouse press events for dragging mini player
+        
+        Args:
+            event: Mouse press event
+        """
         if self.state == 'normal':
             return
         if event.button() == Qt.MouseButton.LeftButton:
@@ -159,16 +115,26 @@ class SakuraPlayBar(StandardMediaPlayBar):
             self._start_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
             event.accept()
 
-    # 鼠标移动事件，更新窗口位置
     def mouseMoveEvent(self, event):
+        """
+        Handle mouse move events for dragging mini player
+        
+        Args:
+            event: Mouse move event
+        """
         if self.state == 'normal':
             return
         if self._is_dragging:
             self.move(event.globalPosition().toPoint() - self._start_position)
             event.accept()
 
-    # 鼠标释放事件，停止拖动
     def mouseReleaseEvent(self, event):
+        """
+        Handle mouse release events for dragging mini player
+        
+        Args:
+            event: Mouse release event
+        """
         if self.state == 'normal':
             return
         if event.button() == Qt.MouseButton.LeftButton:
@@ -176,12 +142,14 @@ class SakuraPlayBar(StandardMediaPlayBar):
             event.accept()
 
     def togglePlayState(self):
+        """Toggle between play and pause states"""
         if self.is_playing:
             self.pause()
         else:
             self.play()
 
     def pause(self):
+        """Pause the current playback"""
         self.playButton.setPlay(False)
         self.is_playing = False
         if self.playing_name in self.sakura_player_dict:
@@ -189,16 +157,17 @@ class SakuraPlayBar(StandardMediaPlayBar):
             self.time_manager.set_playing(False)
 
     def play(self):
+        """
+        Start or resume playback of the currently selected song
+        Handles loading new songs and managing player instances
+        """
         current_item = self.file_list_box.currentItem()
         if current_item is None:
             return
         
         file_name = current_item.text()
         
-        # Clearing resources from the previous song
-        player = get_player(conf.player.type, conf)
-        player.cleanup()
-        
+        # If the same song and not seeking - just continue
         if self.playing_name == file_name and not self.progress_slider_clicked:
             self.playButton.setPlay(True)
             self.is_playing = True
@@ -207,51 +176,155 @@ class SakuraPlayBar(StandardMediaPlayBar):
                 self.time_manager.set_playing(True)
             return
 
-        try:            
+        try:
+            # Clear the previous player before loading a new song
+            if self.playing_name in self.sakura_player_dict:
+                old_player = self.sakura_player_dict[self.playing_name]
+                old_player.cleanup(force=True)  # Force cleanup when changing songs
+                del self.sakura_player_dict[self.playing_name]
+            
+            # Load new song
             json_data = load_json(f'{conf.file_path}/{file_name}')
             song_notes = json_data[0]['songNotes']
             
-            if self.playing_name in self.sakura_player_dict:
-                self.sakura_player_dict[self.playing_name].stop()
-                del self.sakura_player_dict[self.playing_name]
-            
+            # Create new player
+            player = get_player(conf.player.type, conf)  # Create player beforehand
             sakura_player = SakuraPlayer(song_notes, self.time_manager, self.callback)
             sakura_player.last_time = song_notes[-1]['time']
-            self.sakura_player_dict[file_name] = sakura_player
             
+            # Update UI before playback starts
             self.playButton.setPlay(True)
-            self.is_playing = True
-            self.playing_name = file_name
-            
             total_seconds = sakura_player.last_time // 1000
             self.progressSlider.setRange(0, total_seconds)
             
-            sakura_player.play(
-                get_player(conf.player.type, conf),
-                self.get_key_mapping()
-            )
+            # Save player and start playback
+            self.sakura_player_dict[file_name] = sakura_player
+            self.playing_name = file_name
+            self.is_playing = True
+            
+            # Start playback
+            sakura_player.play(player, self.get_key_mapping())
             
         except Exception as e:
             logger.error(f"Error playing file {file_name}: {e}")
+            self.is_playing = False
+            self.playButton.setPlay(False)
 
-    # 当播放完毕时，回调当前接口
     def callback(self):
-        self.playButton.setPlay(False)
-        self.is_playing = False
-        self.playing_name = ''
+        """
+        Callback executed when playback is finished
+        Handles cleanup and UI updates
+        """
+        try:
+            if self.playing_name in self.sakura_player_dict:
+                current_player = self.sakura_player_dict[self.playing_name]
+                current_player.cleanup(force=False)  # Soft cleanup when song ends
+            
+            self.playButton.setPlay(False)
+            self.is_playing = False
+            
+        except Exception as e:
+            logger.error(f"Error in playback callback: {e}")
+        finally:
+            self.is_playing = False
+            self.playButton.setPlay(False)
 
-    # 手动终止播放时，回调当前接口
     def termination_cb(self):
         pass
 
     def get_key_mapping(self):
+        """Get the current key mapping configuration"""
         mapping_type = conf.mapping.type
         mapping_dict = {
             "json": JsonMapper()
         }
         return mapping_dict[mapping_type].get_key_mapping()
 
+    def progress_slider_pressed(self):
+        """Handle when user starts dragging the progress slider"""
+        self.progress_slider_clicked = True
+        self.user_is_seeking = True
+        if self.is_playing:
+            self.time_manager.set_playing(False)
+
+    def progress_slider_released(self):
+        """
+        Handle when user releases the progress slider
+        Performs seeking to the new position
+        """
+        if not self.progress_slider_clicked:
+            return
+            
+        try:
+            value = self.progressSlider.value()
+            current_player = self.sakura_player_dict.get(self.playing_name)
+            
+            if current_player:
+                was_playing = self.is_playing
+                
+                # Pause playback
+                if was_playing:
+                    self.time_manager.set_playing(False)
+                
+                # Perform seeking
+                current_player.seek(value * 1000)
+                
+                # Resume playback
+                if was_playing:
+                    self.time_manager.set_playing(True)
+                    
+        finally:
+            self.progress_slider_clicked = False
+            self.user_is_seeking = False
+
+    def progress_slider_value_changed(self, value):
+        """
+        Update time labels when progress slider value changes
+        
+        Args:
+            value: New slider position in seconds
+        """
+        if not self.user_is_seeking:
+            return
+        
+        minutes = value // 60
+        seconds = value % 60
+        self.currentTimeLabel.setText(f'{minutes}:{seconds:02d}')
+        
+        if self.playing_name and self.playing_name in self.sakura_player_dict:
+            total_seconds = self.sakura_player_dict[self.playing_name].last_time // 1000
+            remain_seconds = total_seconds - value
+            remain_minutes = remain_seconds // 60
+            remain_seconds = remain_seconds % 60
+            self.remainTimeLabel.setText(f'{remain_minutes}:{remain_seconds:02d}')
+
+    def progress_slider_mouse_press(self, event):
+        """
+        Handle direct clicks on the progress bar
+        
+        Args:
+            event: Mouse event containing click position
+        """
+        if event.button() == Qt.MouseButton.LeftButton:
+            # Calculate the clicked position as a percentage
+            value = event.position().x() / self.progressSlider.width()
+            new_value = int(value * self.progressSlider.maximum())
+            
+            # Update the slider value
+            self.progressSlider.setValue(new_value)
+            
+            # Handle the position change similar to slider release
+            self.progress_slider_clicked = True
+            self.user_is_seeking = True
+            self.progress_slider_released()
+
     def update_progress(self, current_time_ms: int):
+        """
+        Update progress bar and time labels based on current playback position
+        
+        Args:
+            current_time_ms: Current playback time in milliseconds
+        """
         if not self.user_is_seeking:
             current_seconds = current_time_ms // 1000
             
@@ -268,22 +341,76 @@ class SakuraPlayBar(StandardMediaPlayBar):
                 remain_seconds = remain_seconds % 60
                 self.remainTimeLabel.setText(f'{remain_minutes}:{remain_seconds:02d}')
 
-    def progress_slider_mouse_press(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            # Calculate the clicked position as a percentage
-            value = event.position().x() / self.progressSlider.width()
-            new_value = int(value * self.progressSlider.maximum())
+    def add_wait_time(self):
+        """Increase playback wait time"""
+        self.wait_time += Decimal(conf.control.speed)
+        logger.info(f'wait_time: {self.wait_time}')
+
+    def reduce_wait_time(self):
+        """Decrease playback wait time"""
+        if self.wait_time > 0:
+            self.wait_time -= Decimal(conf.control.speed)
+        logger.info(f'wait_time: {self.wait_time}')
+
+    # Volume Control Methods
+    def _handle_volume_change(self, value: int):
+        """
+        Handle volume slider changes
+        
+        Args:
+            value: New volume value (0-100)
+        """
+        try:
+            volume = float(value) / 100.0
             
-            # Update the slider value
-            self.progressSlider.setValue(new_value)
-            
-            # Handle the position change similar to slider release
-            self.progress_slider_clicked = True
-            self.user_is_seeking = True
-            self.progress_slider_released()
+            # Only save to config if not muted
+            if not self._is_muted:
+                self._user_volume = volume
+                conf.player.volume = volume
+                save_conf(conf)
+                
+                # Start delayed logging
+                self._start_volume_timer(volume)
+            self._update_player_volume(volume)
+        except Exception as e:
+            logger.error(f"Failed to handle volume change: {e}")
+
+    def _handle_mute_change(self, is_muted: bool):
+        """
+        Handle mute button toggles
+        
+        Args:
+            is_muted: True if audio should be muted
+        """
+        try:
+            self._is_muted = is_muted
+            volume = 0.0 if is_muted else self._user_volume
+            self.volumeButton.setVolume(0 if is_muted else int(self._user_volume * 100))
+            self._update_player_volume(volume)
+            self._start_volume_timer(volume)
+            # Start delayed logging
+            self._start_volume_timer(0.0 if is_muted else self._user_volume)
+        except Exception as e:
+            logger.error(f"Failed to handle mute change: {e}")
+
+    def _update_player_volume(self, volume: float):
+        """
+        Update volume for current player
+        
+        Args:
+            volume: New volume value (0.0-1.0)
+        """
+        try:
+            if self.playing_name in self.sakura_player_dict:
+                current_player = self.sakura_player_dict[self.playing_name]
+                if hasattr(current_player, 'player') and hasattr(current_player.player, 'audio'):
+                    for sound in current_player.player.audio:
+                        sound.set_volume(volume)
+        except Exception as e:
+            logger.error(f"Failed to update player volume: {e}")
 
     def _delayed_volume_logging(self):
-        """Thread function to handle delayed volume logging"""
+        """Background thread for delayed (1 second) volume change logging"""
         while True:
             with self._volume_lock:
                 if self._last_volume_change is None:
@@ -304,7 +431,12 @@ class SakuraPlayBar(StandardMediaPlayBar):
                 return
 
     def _start_volume_timer(self, volume: float):
-        """Start or restart the volume logging timer"""
+        """
+        Start or restart the volume logging timer
+        
+        Args:
+            volume: Current volume value to log
+        """
         with self._volume_lock:
             self._last_volume_change = volume
             
@@ -317,47 +449,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
             )
             self._volume_timer.start()
 
-    def _handle_volume_change(self, value: int):
-        """Handle volume slider changes"""
-        try:
-            volume = float(value) / 100.0
-            
-            # Only save to config if not muted
-            if not self._is_muted:
-                self._user_volume = volume
-                conf.player.volume = volume
-                save_conf(conf)
-                
-                # Start delayed logging
-                self._start_volume_timer(volume)
-            self._update_player_volume(volume)
-        except Exception as e:
-            logger.error(f"Failed to handle volume change: {e}")
-
-    def _handle_mute_change(self, is_muted: bool):
-        """Handle mute button toggles"""
-        try:
-            self._is_muted = is_muted
-            volume = 0.0 if is_muted else self._user_volume
-            self.volumeButton.setVolume(0 if is_muted else int(self._user_volume * 100))
-            self._update_player_volume(volume)
-            self._start_volume_timer(volume)
-            # Start delayed logging
-            self._start_volume_timer(0.0 if is_muted else self._user_volume)
-        except Exception as e:
-            logger.error(f"Failed to handle mute change: {e}")
-
-    def _update_player_volume(self, volume: float):
-        """Update volume for current player if exists"""
-        try:
-            if self.playing_name in self.sakura_player_dict:
-                current_player = self.sakura_player_dict[self.playing_name]
-                if hasattr(current_player, 'player') and hasattr(current_player.player, 'audio'):
-                    for sound in current_player.player.audio:
-                        sound.set_volume(volume)
-        except Exception as e:
-            logger.error(f"Failed to update player volume: {e}")
-
     def __del__(self):
+        """Cleanup resources when object is destroyed"""
         if hasattr(self, 'time_manager'):
             self.time_manager.cleanup()
