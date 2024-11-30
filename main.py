@@ -11,8 +11,7 @@ from sakura.config import conf
 from sakura.factory.PlayerFactory import get_player
 from sakura.listener import register_listener
 from sakura.components.TimeManager import TimeManager
-from sakura.components.player.SakuraPlayer import PlayCallback, play_song
-
+from sakura.components.player.SakuraPlayer import SakuraPlayer
 
 paused = True
 
@@ -64,7 +63,9 @@ def main() -> None:
     json_list = load_json(f'{file_path}/{file_name}')
     song_notes = json_list[0]['songNotes']
     register_listener(keyboard.Key.f4, listener, 'Pause/Resume')
-    play_song(song_notes, p, km, PlayCallback(lambda: False, lambda: paused, lambda: None, lambda: None), time_manager)
+    
+    player = SakuraPlayer(song_notes, time_manager)
+    player.play(p, km)
     time.sleep(2)
 
 

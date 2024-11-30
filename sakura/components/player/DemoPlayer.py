@@ -1,6 +1,7 @@
 import os
 from functools import lru_cache
 from typing import Dict, List, Optional
+import time
 
 import pygame
 
@@ -157,6 +158,14 @@ class DemoPlayer(Player):
         """Proper cleanup of audio resources"""
         try:
             if self._audio_initialized and pygame.mixer.get_init():
+                # Check if there are active channels
+                active_channels = [ch for ch in self.channels if ch.get_busy()]
+                
+                if active_channels:
+                    # Give time for the last notes to play
+                    time.sleep(0.75)  # 750 milliseconds
+                
+                # Stop all channels
                 pygame.mixer.stop()
                 
                 # Clear all channels
@@ -169,14 +178,27 @@ class DemoPlayer(Player):
                 # Clear and delete sounds
                 for sound in self._audio_cache.values():
                     if sound:
+                        sound.stop()  # Stop sound
                         del sound
                 self._audio_cache.clear()
-                self.audio = [None] * 15
+                
+                # Clear audio list
+                for i in range(len(self.audio)):
+                    if self.audio[i]:
+                        self.audio[i].stop()
+                        self.audio[i] = None
+                
+                # Clear channels list
                 self.channels.clear()
                 
                 self._audio_initialized = False
+                
         except Exception as e:
             logger.error(f"Error in audio cleanup: {e}")
-
+            
     def __del__(self):
-        self.cleanup()
+        """Destructor for guaranteed cleanup"""
+        try:
+            self.cleanup()
+        except:
+            pass
