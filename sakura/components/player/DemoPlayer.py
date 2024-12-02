@@ -16,6 +16,8 @@ class DemoPlayer(Player):
         "F1": "10", "G1": "11", "A1": "12", "B1": "13", "C2": "14"
     }
 
+    SUPPORTED_AUDIO_FORMATS = ['.mp3', '.wav']
+
     def __init__(self, conf):
         super().__init__(conf)
         self._audio_initialized = False
@@ -87,6 +89,24 @@ class DemoPlayer(Player):
             raise FileNotFoundError(f"Sound file not found: {sound_path}")
         return pygame.mixer.Sound(sound_path)
 
+    def _find_audio_file(self, base_path: str, index: int) -> str:
+        """
+        Find first available audio file with supported format
+        
+        Args:
+            base_path: Base path to instrument directory
+            index: Note index
+        """
+        for format in self.SUPPORTED_AUDIO_FORMATS:
+            file_path = os.path.join(base_path, f'{index}{format}')
+            if os.path.exists(file_path):
+                return file_path
+                
+        raise FileNotFoundError(
+            f"No supported audio file found for note {index} in {base_path}. "
+            f"Supported formats: {', '.join(self.SUPPORTED_AUDIO_FORMATS)}"
+        )
+
     def _initialize_audio(self, conf):
         try:
             if not self._audio_initialized:
@@ -103,11 +123,15 @@ class DemoPlayer(Player):
                 
                 # Load sounds on demand
                 for i in range(15):
-                    sound_file = os.path.join(instruments_path, f'{i}.wav')
-                    sound = self._load_sound(sound_file)
-                    sound.set_volume(self._base_volume)
-                    self.audio[i] = sound
-                    self._audio_cache[str(i)] = sound
+                    try:
+                        sound_file = self._find_audio_file(instruments_path, i)
+                        sound = self._load_sound(sound_file)
+                        sound.set_volume(self._base_volume)
+                        self.audio[i] = sound
+                        self._audio_cache[str(i)] = sound
+                    except FileNotFoundError as e:
+                        logger.error(f"Failed to load audio file: {e}")
+                        raise
                 
                 self._audio_initialized = True
         except Exception as e:

@@ -10,20 +10,34 @@ class BaseSettingsGroup(GroupHeaderCardWidget):
 
 
 class SystemSettingsGroup(BaseSettingsGroup):
-    items: list[str] = ['demo', 'win']
+    player_types: list[str] = ['demo', 'win']
+    instruments: list[str] = [
+        'Aurora', 'Contrabass', 'Flute', 'Guitar', 'Harp', 'Horn', 'Kalimba', 'LightGuitar', 
+        'MantaOcarina', 'Ocarina', 'Panflute', 'Piano', 'Piano Old', 'SFX_BirdCall', 'SFX_CrabCall', 
+        'SFX_FishCall', 'SFX_JellyCall', 'SFX_MantaCall', 'SFX_MothCall', 'SFX_SpiritMantaCall', 
+        'ToyUkulele', 'Trumpet', 'WinterPiano', 'Xylophone'
+        ]
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('系统设置')
-        self.create_combo_box(parent)
+        self.create_player_type_combo(parent)
+        self.create_instruments_combo(parent)
         self.create_speed_control(parent)
 
-    def create_combo_box(self, parent):
+    def create_player_type_combo(self, parent):
         combo = ComboBox(parent)
-        combo.addItems(self.items)
-        combo.currentIndexChanged.connect(self.current_index_changed)
-        combo.setCurrentIndex(self.items.index(conf.player.type))
+        combo.addItems(self.player_types)
+        combo.currentIndexChanged.connect(lambda idx: self.current_index_changed('type', idx))
+        combo.setCurrentIndex(self.player_types.index(conf.player.type))
         self.addGroup(FluentIcon.TILES, '播放类型', '选择软件播放类型', combo)
+
+    def create_instruments_combo(self, parent):
+        combo = ComboBox(parent)
+        combo.addItems(self.instruments)
+        combo.currentIndexChanged.connect(lambda idx: self.current_index_changed('instruments', idx))
+        combo.setCurrentIndex(self.instruments.index(conf.player.instruments))
+        self.addGroup(FluentIcon.MUSIC, 'Instrument Selection', 'Select the instrument you want to use', combo)
 
     def create_speed_control(self, parent):
         speed_control = LineEdit(parent)
@@ -32,9 +46,11 @@ class SystemSettingsGroup(BaseSettingsGroup):
         speed_control.editingFinished.connect(lambda: self.update_config('control.speed', speed_control.text(), speed_control))
         self.addGroup(FluentIcon.ADD, '速度控制', '设置每拍增加的速度', speed_control)
 
-
-    def current_index_changed(self, index: int) -> None:
-        conf.player.type = self.items[index]
+    def current_index_changed(self, setting: str, index: int) -> None:
+        if setting == 'type':
+            conf.player.type = self.player_types[index]
+        elif setting == 'instruments':
+            conf.player.instruments = self.instruments[index]
         save_conf(conf)
 
     def update_config(self, attribute: str, value: str, attributes: LineEdit) -> None:
