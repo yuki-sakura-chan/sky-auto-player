@@ -13,9 +13,9 @@ class SystemSettingsGroup(BaseSettingsGroup):
     player_types: list[str] = ['demo', 'win']
     instruments: list[str] = [
         'Aurora', 'Contrabass', 'Flute', 'Guitar', 'Harp', 'Horn', 'Kalimba', 'LightGuitar', 
-        'MantaOcarina', 'Ocarina', 'Panflute', 'Piano', 'Piano V2', 'Piano Old', 'Pipa', 
-        'SFX_BirdCall', 'SFX_CrabCall', 'SFX_FishCall', 'SFX_JellyCall', 'SFX_MantaCall', 
-        'SFX_MothCall', 'SFX_SpiritMantaCall', 'ToyUkulele', 'Trumpet', 'WinterPiano', 'Xylophone'
+        'MantaOcarina', 'Ocarina', 'Panflute', 'Piano', 'Pipa', 'SFX_BirdCall', 'SFX_CrabCall', 
+        'SFX_FishCall', 'SFX_JellyCall', 'SFX_MantaCall', 'SFX_MothCall', 'SFX_SpiritMantaCall', 
+        'ToyUkulele', 'Trumpet', 'WinterPiano', 'Xylophone'
         ]
 
     def __init__(self, parent=None):
