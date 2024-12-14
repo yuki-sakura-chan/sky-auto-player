@@ -2,6 +2,8 @@ import os
 from functools import lru_cache
 from typing import Dict, List, Optional
 import time
+import soundfile as sf
+import numpy as np
 
 import pygame
 
@@ -15,6 +17,8 @@ class DemoPlayer(Player):
         "A": "5", "B": "6", "C1": "7", "D1": "8", "E1": "9",
         "F1": "10", "G1": "11", "A1": "12", "B1": "13", "C2": "14"
     }
+
+    SUPPORTED_AUDIO_FORMATS = ['.mp3', '.wav', '.ogg', '.flac']
 
     def __init__(self, conf):
         super().__init__(conf)
@@ -60,7 +64,7 @@ class DemoPlayer(Player):
                                 # 8 - 7.1 Surround sound
                                 # More channels = better spatial audio but more memory
             
-            buffer=2048         # Audio buffer size in bytes
+            buffer=1024         # Audio buffer size in bytes
                                 # Common values:
                                 # 256  - Minimal latency, highest CPU usage
                                 # 512  - Low latency
@@ -80,14 +84,8 @@ class DemoPlayer(Player):
         
         self._initialize_audio(conf)
 
-    @lru_cache(maxsize=15)
-    def _load_sound(self, sound_path: str) -> pygame.mixer.Sound:
-        """Load and cache sound file"""
-        if not os.path.exists(sound_path):
-            raise FileNotFoundError(f"Sound file not found: {sound_path}")
-        return pygame.mixer.Sound(sound_path)
-
     def _initialize_audio(self, conf):
+        """Initialize audio system, load sound files and set up audio channels"""
         try:
             if not self._audio_initialized:
                 self.num_channels = pygame.mixer.get_num_channels()
@@ -103,19 +101,101 @@ class DemoPlayer(Player):
                 
                 # Load sounds on demand
                 for i in range(15):
-                    sound_file = os.path.join(instruments_path, f'{i}.wav')
-                    sound = self._load_sound(sound_file)
-                    sound.set_volume(self._base_volume)
-                    self.audio[i] = sound
-                    self._audio_cache[str(i)] = sound
+                    try:
+                        sound_file = self._find_audio_file(instruments_path, i)
+                        sound = self._load_sound(sound_file)
+                        sound.set_volume(self._base_volume)
+                        self.audio[i] = sound
+                        self._audio_cache[str(i)] = sound
+                    except FileNotFoundError as e:
+                        logger.error(f"Failed to load audio file: {e}")
+                        raise
                 
                 self._audio_initialized = True
         except Exception as e:
             logger.error(f"Failed to initialize audio: {e}")
             raise
 
+    @lru_cache(maxsize=15)
+    def _load_sound(self, sound_path: str) -> pygame.mixer.Sound:
+        """Load and cache sound file"""
+        if not os.path.exists(sound_path):
+            raise FileNotFoundError(f"Sound file not found: {sound_path}")
+        return pygame.mixer.Sound(sound_path)
+
+    def _convert_to_wav(self, input_path: str) -> str:
+        """
+        Convert audio file to WAV format for compatibility.
+        Only converts if file isn't already WAV format.
+        
+        Args:
+            input_path: Path to input audio file
+        Returns:
+            Path to WAV file (either converted or original)
+        """
+        try:
+            # Skip if already WAV
+            if input_path.lower().endswith('.wav'):
+                return input_path
+                
+            directory = os.path.dirname(input_path)
+            filename = os.path.splitext(os.path.basename(input_path))[0]
+            output_path = os.path.join(directory, f"{filename}.wav")
+            
+            # Convert only if output doesn't exist
+            if not os.path.exists(output_path):
+                # Read audio file
+                data, sample_rate = sf.read(input_path)
+                '''
+                # Convert to float32 for better quality
+                if data.dtype != np.float32:
+                    data = data.astype(np.float32)
+                '''
+                # Write WAV file with original settings
+                sf.write(
+                    output_path,
+                    data,
+                    sample_rate,
+                    # subtype='FLOAT',
+                    format='WAV'
+                )
+            
+            return output_path
+            
+        except Exception as e:
+            logger.error(f"Error converting audio to WAV: {e}")
+            return input_path
+
+    def _find_audio_file(self, base_path: str, index: int) -> str:
+        """
+        Find first available audio file with supported format.
+        Converts found file to WAV format if needed.
+        
+        Args:
+            base_path: Directory to search in
+            index: Note index to find
+        Returns:
+            Path to found audio file
+        """
+        for format in self.SUPPORTED_AUDIO_FORMATS:
+            file_path = os.path.join(base_path, f'{index}{format}')
+            if os.path.exists(file_path):
+                # Convert to WAV before returning
+                return self._convert_to_wav(file_path)
+                
+        raise FileNotFoundError(
+            f"No supported audio file found for note {index} in {base_path}. "
+            f"Supported formats: {', '.join(self.SUPPORTED_AUDIO_FORMATS)}"
+        )
+
     def _find_available_channel(self) -> pygame.mixer.Channel:
-        """Find first available channel or least recently used one"""
+        """
+        Find first available channel or least recently used one.
+        Uses round-robin selection if all channels are busy.
+        
+        Returns:
+            pygame.mixer.Channel object for sound playback
+        """
         # Try to find a free channel first
         for i in range(self.num_channels):
             channel_index = (self._channel_index + i) % self.num_channels
@@ -128,6 +208,14 @@ class DemoPlayer(Player):
         return self.channels[self._channel_index]
 
     def press(self, key, conf):
+        """
+        Play sound corresponding to pressed key.
+        Initializes audio if not already initialized.
+        
+        Args:
+            key: Key identifier
+            conf: Configuration object
+        """
         try:
             if not self._audio_initialized:
                 self._initialize_audio(conf)
@@ -145,7 +233,12 @@ class DemoPlayer(Player):
             logger.error(f"Error playing audio sound: {e}")
 
     def set_volume(self, volume: float):
-        """Set volume for all sounds"""
+        """
+        Set volume level for all sounds.
+        
+        Args:
+            volume: Volume level (0.0 to 1.0)
+        """
         try:
             self._base_volume = volume
             for sound in self._audio_cache.values():
@@ -197,7 +290,7 @@ class DemoPlayer(Player):
             logger.error(f"Error in audio cleanup: {e}")
             
     def __del__(self):
-        """Destructor for guaranteed cleanup"""
+        """Destructor to ensure cleanup is called when object is destroyed"""
         try:
             self.cleanup()
         except:
