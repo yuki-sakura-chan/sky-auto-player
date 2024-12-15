@@ -256,34 +256,3 @@ class InstrumentsManager:
             instrument_name = text[:text.rfind("[")].strip()
             source_name = text[text.rfind("[")+1:text.rfind("]")]
             self.handle_instrument_selection(instrument_name, source_name)
-    
-    def update_progress(self, progress: float, bytes_downloaded: int, speed: float):
-        if progress < 0:
-            self.progress_bar.setRange(0, 0)
-            self.status_label.setText("Downloading instruments... (size unknown)")
-        else:
-            self.progress_bar.setRange(0, 100)
-            self.progress_bar.setValue(int(progress))
-            self.status_label.setText("Downloading instruments...")
-        
-        self.update_status_icon("downloading")
-        
-        # Update size
-        size_text = humanize.naturalsize(bytes_downloaded, binary=True)
-        self.size_label.setText(f"Size: {size_text}")
-        
-        # Update speed
-        speed_text = humanize.naturalsize(speed, binary=True) + "/s"
-        self.speed_label.setText(f"Speed: {speed_text}")
-        
-        # Update estimated time only if we know the total size
-        if progress > 0 and speed > 0:
-            remaining_bytes = (bytes_downloaded / progress * 100) - bytes_downloaded
-            eta_seconds = remaining_bytes / speed
-            if eta_seconds >= 60:
-                eta_text = f"{int(eta_seconds/60)}m {int(eta_seconds%60)}s"
-            else:
-                eta_text = f"{int(eta_seconds)}s"
-            self.time_label.setText(f"Time left: {eta_text}")
-        else:
-            self.time_label.setText("Time left: unknown")

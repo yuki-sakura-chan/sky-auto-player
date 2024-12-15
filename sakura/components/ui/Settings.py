@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QSizePolicy, QSpacerItem, QDialog
-from qfluentwidgets import (GroupHeaderCardWidget, FluentIcon, ComboBox, LineEdit, PushButton, ProgressBar, 
+from qfluentwidgets import (GroupHeaderCardWidget, FluentIcon, ComboBox, LineEdit, PushButton, 
                            InfoBar, InfoBarPosition)
 
 from sakura.config import conf, save_conf
