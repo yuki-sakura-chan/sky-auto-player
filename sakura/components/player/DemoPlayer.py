@@ -3,7 +3,6 @@ from functools import lru_cache
 from typing import Dict, List, Optional
 import time
 import soundfile as sf
-import numpy as np
 
 import pygame
 
@@ -91,10 +90,18 @@ class DemoPlayer(Player):
                 self.num_channels = pygame.mixer.get_num_channels()
                 self.channels = [pygame.mixer.Channel(i) for i in range(self.num_channels)]
                 
-                instruments_path = os.path.join(
+                instruments_path = os.path.normpath(os.path.join(
                     os.getcwd(), 
-                    f'resources/Instruments/{conf.player.instruments}'
-                )
+                    'resources',
+                    'Instruments',
+                    conf.player.source,
+                    conf.player.instruments
+                ))
+                
+                logger.info(f"Loading instrument from: {instruments_path}")
+                
+                if not os.path.exists(instruments_path):
+                    raise FileNotFoundError(f"Instrument directory not found: {instruments_path}")
                 
                 # Initialize audio list with None values
                 self.audio = [None] * 15
@@ -146,17 +153,11 @@ class DemoPlayer(Player):
             if not os.path.exists(output_path):
                 # Read audio file
                 data, sample_rate = sf.read(input_path)
-                '''
-                # Convert to float32 for better quality
-                if data.dtype != np.float32:
-                    data = data.astype(np.float32)
-                '''
                 # Write WAV file with original settings
                 sf.write(
                     output_path,
                     data,
                     sample_rate,
-                    # subtype='FLOAT',
                     format='WAV'
                 )
             

@@ -1,8 +1,8 @@
-
 from pydantic import BaseModel
 
 
 class Player(BaseModel):
+    source: str
     instruments: str
     type: str
     volume: float

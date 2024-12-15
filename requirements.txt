@@ -9,3 +9,5 @@ numpy~=2.1.1
 pillow~=10.4.0
 requests~=2.32.3
 pydantic~=2.9.2
+soundfile==0.12.1
+humanize==4.11.0
