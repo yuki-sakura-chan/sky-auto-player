@@ -2,6 +2,9 @@
 .idea/
 __pycache__/
 /resources/**/*.wav
+/resources/**/*.mp3
+/resources/**/*.ogg
+/resources/**/*.flac
 /resources/music/**/*.txt
 /resources/music/**/*.json
 /resources/music/**/*.skysheet

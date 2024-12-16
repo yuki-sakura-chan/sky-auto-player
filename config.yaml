@@ -7,5 +7,6 @@ mapping:
   type: json
 player:
   instruments: Piano
+  source: Default
   type: demo
   volume: 0.5
