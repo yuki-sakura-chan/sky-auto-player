@@ -5,9 +5,9 @@ from sakura.interface.Player import Player
 
 class WindowsPlayer(Player):
     key_mapping = {
-        "C": "y", "D": "u", "E": "i", "F": "o", "G": "p",
-        "A": "h", "B": "j", "C1": "k", "D1": "l", "E1": ";",
-        "F1": "n", "G1": "m", "A1": ",", "B1": ".", "C2": "/"
+        "C4": "y", "D4": "u", "E4": "i", "F4": "o", "G4": "p",
+        "A4": "h", "B4": "j", "C5": "k", "D5": "l", "E5": ";",
+        "F5": "n", "G5": "m", "A5": ",", "B5": ".", "C6": "/"
     }
 
     def __init__(self, conf: any):
