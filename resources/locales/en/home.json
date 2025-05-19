@@ -1,0 +1,5 @@
+{
+  "home_card.text": "This program is open-source and free to use. Contributions are welcome!",
+  "component_card.text": "This program uses the QFluentWidgets UI library. Click for more info.",
+  "pixiv_card.text": "You can view the original image in the bottom-right corner. If the logo displays properly, your network can access Pixiv."
+}

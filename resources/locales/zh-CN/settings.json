@@ -1,0 +1,10 @@
+{
+  "title": "系统设置",
+  "play_type.title": "播放类型",
+  "play_type.content": "选择软件播放类型",
+  "speed_control.PlaceholderText": "请输入每拍增加的速度",
+  "speed_control.title": "速度控制",
+  "speed_control.content": "设置每拍增加的速度",
+  "region.title": "语言",
+  "region.content": "请选择适合您的语言"
+}

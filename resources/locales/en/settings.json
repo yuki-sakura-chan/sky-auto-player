@@ -1,0 +1,10 @@
+{
+  "title": "System Settings",
+  "play_type.title": "Playback Mode",
+  "play_type.content": "Select the playback mode for this software",
+  "speed_control.PlaceholderText": "Enter the speed increase per beat",
+  "speed_control.title": "Speed Control",
+  "speed_control.content": "Set how much the speed increases per beat",
+  "region.title": "Language",
+  "region.content": "Please select your language"
+}

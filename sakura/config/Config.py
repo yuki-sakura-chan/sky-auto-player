@@ -21,6 +21,7 @@ class Control(BaseModel):
 
 class Config(BaseModel):
     file_path: str
+    region: str
     adb: ADB
     player: Player
     mapping: Mapping

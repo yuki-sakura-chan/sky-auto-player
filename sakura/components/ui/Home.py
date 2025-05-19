@@ -9,6 +9,7 @@ from requests import request
 
 from sakura.components.ui import background_images, main_width
 from sakura.components.ui.BottomRightButton import BottomRightButton
+from sakura.locales.locale import load_locale_messages
 
 
 class Home(QFrame):
@@ -24,14 +25,15 @@ class Home(QFrame):
         layout = QVBoxLayout(background)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.setContentsMargins(30, 20, 30, 20)
+        locales = load_locale_messages('home')
         layout.addWidget(LargeTitleLabel('Welcome to Sky Auto Player!', None))
-        home_card = HomeCard('GitHub repo', '本程序免费开源，欢迎大家贡献', FluentIcon.GITHUB,
+        home_card = HomeCard('GitHub repo', locales.messages('home_card.text'), FluentIcon.GITHUB,
                              'https://github.com/yuki-sakura-chan/sky-auto-player', self)
-        component_card = HomeCard('QFluentWidgets', '本程序UI使用了QFluentWidgets UI 组件库，详情请点击跳转',
+        component_card = HomeCard('QFluentWidgets', locales.messages('component_card.text'),
                                   QIcon(':/qfluentwidgets/images/logo.png'),
                                   'https://qfluentwidgets.com/zh/')
         pixiv_card = HomeCard('Pixiv',
-                              '背景右下角可查看原图。如果你能正常显示Logo，说明你的网络环境可以访问Pixiv',
+                              locales.messages('pixiv_card.text'),
                               'https://www.pixiv.net/favicon.ico', 'https://www.pixiv.net/')
         body_layout = FlowLayout()
         body_layout.addWidget(home_card)

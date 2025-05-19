@@ -9,3 +9,4 @@ player:
   instruments: Piano
   type: demo
   volume: 0.5
+region: zh-CN
