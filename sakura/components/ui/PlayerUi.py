@@ -8,12 +8,14 @@ from main import get_file_list
 from sakura.components.SakuraPlayBar import SakuraPlayBar
 from sakura.components.ui import main_width
 from sakura.config import conf
+from sakura.config.sakura_logging import logger
 
 
 class PlayerUi(QFrame):
     file_list_box: ListWidget
     file_list: list[str]
     search_input: SearchLineEdit
+    play: SakuraPlayBar
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -33,7 +35,7 @@ class PlayerUi(QFrame):
         # 创建文件信息布局
         file_info_layout = QHBoxLayout()
         file_info_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        
+
         search_input = SearchLineEdit()
         search_input.searchSignal.connect(self.search)
         search_input.clearSignal.connect(self.clear_search)
@@ -64,7 +66,10 @@ class PlayerUi(QFrame):
         # 创建播放器
         play = SakuraPlayBar(file_list_box=self.file_list_box, temp_layout=player_layout)
         player_layout.addWidget(play)
+        self.play = play
         player_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+        # 添加双击播放音频事件
+        file_list_box.doubleClicked.connect(self.double_clicked)
         # 添加播放器到主容器布局
         container_layout.addLayout(file_info_layout)
         container_layout.addLayout(player_layout)
@@ -91,7 +96,7 @@ class PlayerUi(QFrame):
             results = self._search_cache[text]
         else:
             results = [
-                file for file in self.file_list 
+                file for file in self.file_list
                 if re.search(rf"{text}", file, re.IGNORECASE)
             ]
             self._search_cache[text] = results
@@ -117,3 +122,7 @@ class PlayerUi(QFrame):
 
     def get_file_list_box(self) -> ListWidget:
         return self.file_list_box
+
+    def double_clicked(self) -> None:
+        logger.info('正在播放：%s', self.file_list_box.currentItem().text())
+        self.play.play()
