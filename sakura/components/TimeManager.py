@@ -1,6 +1,8 @@
-from PySide6.QtCore import QObject, Signal
 import threading
 import time
+
+from PySide6.QtCore import QObject, Signal
+
 
 class TimeManager(QObject):
     timeChanged = Signal(int)

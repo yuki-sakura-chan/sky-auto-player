@@ -1,9 +1,9 @@
-from queue import Queue, Empty
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from itertools import groupby
+from queue import Queue, Empty
 from typing import Callable, List
 
 from sakura.components.TimeManager import TimeManager

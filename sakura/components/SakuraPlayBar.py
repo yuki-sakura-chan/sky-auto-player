@@ -5,23 +5,23 @@ from typing import Any
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QVBoxLayout
+from pynput import keyboard
 from qfluentwidgets import ListWidget, FluentIcon
 from qfluentwidgets.multimedia import StandardMediaPlayBar
-from pynput import keyboard
 
+from main import load_json
 from sakura import children_windows
+from sakura.components.SpeedControl import SpeedControl
 from sakura.components.TimeManager import TimeManager
 from sakura.components.mapper.JsonMapper import JsonMapper
+from sakura.components.player.SakuraPlayer import SakuraPlayer
 from sakura.components.ui import main_width
 from sakura.components.ui.BottomRightButton import BottomRightButton
-from sakura.components.SpeedControl import SpeedControl
 from sakura.config import conf, save_conf
 from sakura.config.sakura_logging import logger
 from sakura.factory.PlayerFactory import get_player
-from sakura.components.player.SakuraPlayer import SakuraPlayer
 from sakura.listener import register_listener
 from sakura.registrar.listener_registers import listener_registers
-from main import load_json
 
 
 class SakuraPlayBar(StandardMediaPlayBar):

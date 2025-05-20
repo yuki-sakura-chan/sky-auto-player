@@ -1,8 +1,7 @@
 import os
 import sys
 
-from PySide6.QtCore import QProcess
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QSizePolicy, QSpacerItem, QApplication
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QSizePolicy, QSpacerItem
 from qfluentwidgets import GroupHeaderCardWidget, FluentIcon, ComboBox, LineEdit, Dialog
 
 from sakura.components.ui import languages

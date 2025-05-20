@@ -6,12 +6,12 @@ import time
 import chardet
 from pynput import keyboard
 
+from sakura.components.TimeManager import TimeManager
 from sakura.components.mapper.JsonMapper import JsonMapper
+from sakura.components.player.SakuraPlayer import SakuraPlayer
 from sakura.config import conf
 from sakura.factory.PlayerFactory import get_player
 from sakura.listener import register_listener
-from sakura.components.TimeManager import TimeManager
-from sakura.components.player.SakuraPlayer import SakuraPlayer
 
 paused = True
 

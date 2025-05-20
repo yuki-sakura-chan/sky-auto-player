@@ -1,12 +1,12 @@
 import os
+import time
 from functools import lru_cache
 from typing import Dict, List, Optional
-import time
 
 import pygame
 
-from sakura.interface.Player import Player
 from sakura.config.sakura_logging import logger
+from sakura.interface.Player import Player
 
 
 class DemoPlayer(Player):
