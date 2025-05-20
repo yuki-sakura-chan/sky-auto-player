@@ -1,3 +1,4 @@
+import os
 import sys
 
 from PySide6.QtCore import QProcess
@@ -65,9 +66,7 @@ class SystemSettingsGroup(BaseSettingsGroup):
         if w.exec():
             conf.region = languages[self.languages[index]]["key"]
             save_conf(conf)
-            QApplication.quit()
-            process = QProcess()
-            process.startDetached(sys.executable, sys.argv)
+            os.execl(sys.executable, sys.executable, *sys.argv)
 
     def update_config(self, attribute: str, value: str, attributes: LineEdit) -> None:
         try:
