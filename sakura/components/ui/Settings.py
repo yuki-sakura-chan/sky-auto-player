@@ -51,7 +51,7 @@ class SystemSettingsGroup(BaseSettingsGroup):
         current_items = next((k for k, v in languages.items() if v["key"] == conf.region), None)
         combo.setCurrentIndex(self.languages.index(current_items))
         combo.currentIndexChanged.connect(self.language_changed)
-        self.addGroup(FluentIcon.TILES, self.locales.messages('region.title'),
+        self.addGroup(FluentIcon.LANGUAGE, self.locales.messages('region.title'),
                       self.locales.messages('region.content'), combo)
 
     def current_index_changed(self, index: int) -> None:
