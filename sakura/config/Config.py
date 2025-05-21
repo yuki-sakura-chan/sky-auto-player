@@ -19,6 +19,9 @@ class ADB(BaseModel):
 class Control(BaseModel):
     speed: str
 
+class DB(BaseModel):
+    path: str
+
 class Config(BaseModel):
     file_path: str
     region: str
@@ -26,3 +29,4 @@ class Config(BaseModel):
     player: Player
     mapping: Mapping
     control: Control
+    db: DB

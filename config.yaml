@@ -10,3 +10,5 @@ player:
   type: demo
   volume: 0.5
 region: zh-CN
+db:
+  path: sap.db

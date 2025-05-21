@@ -1,14 +1,14 @@
 import re
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QListWidgetItem
 from qfluentwidgets import ListWidget, SearchLineEdit
 
-from main import get_file_list
 from sakura.components.SakuraPlayBar import SakuraPlayBar
 from sakura.components.ui import main_width
 from sakura.config import conf
-from sakura.config.sakura_logging import logger
+from sakura.db.DBManager import song_client
+from sakura.db.JsonPick import get_file_list, load_locale_data
 
 
 class PlayerUi(QFrame):
@@ -48,9 +48,15 @@ class PlayerUi(QFrame):
         file_list_box = ListWidget()
         file_list_box.setFixedSize(400, 600)
         file_list_box.setSpacing(0.5)
-        self.file_list = get_file_list(conf.file_path)
-        for index, file in enumerate(self.file_list):
-            file_list_box.addItem(file)
+        if song_client.db_is_null():
+            self.file_list = get_file_list(conf.file_path)
+            load_locale_data(conf.file_path, self.file_list)
+        songs = song_client.select_all()
+        for index, v in enumerate(songs):
+            item = QListWidgetItem()
+            item.setText(v.name)
+            item.setData(1, v.id)
+            file_list_box.addItem(item)
         # 添加文件列表到主容器布局
         file_list_layout.addWidget(search_input)
         file_list_layout.addWidget(file_list_box)
@@ -124,5 +130,4 @@ class PlayerUi(QFrame):
         return self.file_list_box
 
     def double_clicked(self) -> None:
-        logger.info('正在播放：%s', self.file_list_box.currentItem().text())
         self.play.play()
