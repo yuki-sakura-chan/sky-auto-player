@@ -1,45 +1,16 @@
-import codecs
-import json
-import os
 import time
 
-import chardet
 from pynput import keyboard
 
 from sakura.components.TimeManager import TimeManager
 from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.components.player.SakuraPlayer import SakuraPlayer
 from sakura.config import conf
+from sakura.db.JsonPick import load_json, get_file_list
 from sakura.factory.PlayerFactory import get_player
 from sakura.listener import register_listener
 
 paused = True
-
-# 获取指定目录下的文件列表
-def get_file_list(file_path: str = 'resources') -> list[str]:
-    if not os.path.isdir(file_path):
-        raise ValueError(f"Directory does not exist: {file_path}")
-    allowed_extensions = ['.json', '.txt', '.skysheet']
-    return [
-        file
-        for root, dirs, files in os.walk(file_path)
-        for file in files
-        if os.path.splitext(file)[1].lower() in allowed_extensions
-    ]
-
-
-# 加载json文件
-def load_json(file_path: str) -> dict:
-    if not os.path.isfile(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
-    try:
-        with open(file_path, 'rb') as f:
-            encoding = chardet.detect(f.read(1024))['encoding']
-        with codecs.open(file_path, 'r', encoding=encoding) as f:
-            return json.load(f)
-    except (UnicodeDecodeError, json.JSONDecodeError) as e:
-        raise ValueError(f"Failed to decode JSON file {file_path} using detected encoding {encoding}: {e}")
-
 
 def listener() -> None:
     global paused
