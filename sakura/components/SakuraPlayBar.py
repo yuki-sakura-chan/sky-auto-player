@@ -18,7 +18,7 @@ from sakura.components.ui import main_width
 from sakura.components.ui.BottomRightButton import BottomRightButton
 from sakura.config import conf, save_conf
 from sakura.config.sakura_logging import logger
-from sakura.db.JsonPick import load_json
+from sakura.db.DBManager import song_client
 from sakura.factory.PlayerFactory import get_player
 from sakura.listener import register_listener
 from sakura.registrar.listener_registers import listener_registers
@@ -27,8 +27,14 @@ from sakura.registrar.listener_registers import listener_registers
 class SakuraPlayBar(StandardMediaPlayBar):
     is_playing: bool = False
     file_list_box: ListWidget
-    playing_name: str = ''
-    sakura_player_dict: dict[str, SakuraPlayer] = {}
+    playing_id: int = 0
+    '''
+        此变量本意是为了减少重复解析json文件，因为只需要 song_notes 字段 (因为除了 song_notes 字段外，其他字段全是无效字段），
+        所以将 SakuraPlayer 对象放到数组中，等用户播放重复性的 song 时，可以跳过 json 解析。
+        因为没写注解的原因，可能被他人误解了？反正这件事告诉了我写注释的重要性...
+        懒得改了，等哪天心情好改一下
+    '''
+    sakura_player_dict: dict[int, SakuraPlayer] = {}
     temp_window: QWidget
     temp_layout: QVBoxLayout
     state: str = 'normal'
@@ -152,8 +158,8 @@ class SakuraPlayBar(StandardMediaPlayBar):
         """Pause the current playback"""
         self.playButton.setPlay(False)
         self.is_playing = False
-        if self.playing_name in self.sakura_player_dict:
-            self.sakura_player_dict[self.playing_name].pause()
+        if self.playing_id in self.sakura_player_dict:
+            self.sakura_player_dict[self.playing_id].pause()
             self.time_manager.set_playing(False)
 
     def play(self):
@@ -165,28 +171,27 @@ class SakuraPlayBar(StandardMediaPlayBar):
         if current_item is None:
             return
         
-        file_name = current_item.text()
+        song_id = current_item.data(1)
         
         # If the same song and not seeking - just continue
-        if self.playing_name == file_name and not self.progress_slider_clicked:
+        if self.playing_id == song_id and not self.progress_slider_clicked:
             self.playButton.setPlay(True)
             self.is_playing = True
-            if file_name in self.sakura_player_dict:
-                self.sakura_player_dict[file_name].continue_play()
+            if song_id in self.sakura_player_dict:
+                self.sakura_player_dict[song_id].continue_play()
                 self.time_manager.set_playing(True)
             return
-
+        song_model = song_client.select_by_id(song_id)
         try:
             # Clear the previous player before loading a new song
-            if self.playing_name in self.sakura_player_dict:
-                old_player = self.sakura_player_dict[self.playing_name]
+            if self.playing_id in self.sakura_player_dict:
+                old_player = self.sakura_player_dict[self.playing_id]
                 old_player.cleanup(force=True)  # Force cleanup when changing songs
-                del self.sakura_player_dict[self.playing_name]
+                del self.sakura_player_dict[self.playing_id]
             
-            # Load new song
-            json_data = load_json(f'{conf.file_path}/{file_name}')
-            song_notes = json_data[0]['songNotes']
-            
+            # 从数据库查询 song_notes
+            song_notes = song_model.songNotes
+
             # Create new player
             player = get_player(conf.player.type, conf)  # Create player beforehand
             sakura_player = SakuraPlayer(song_notes, self.time_manager, self.callback)
@@ -198,8 +203,8 @@ class SakuraPlayBar(StandardMediaPlayBar):
             self.progressSlider.setRange(0, total_seconds)
             
             # Save player and start playback
-            self.sakura_player_dict[file_name] = sakura_player
-            self.playing_name = file_name
+            self.sakura_player_dict[song_id] = sakura_player
+            self.playing_id = song_id
             self.is_playing = True
             
             # Start playback
@@ -208,7 +213,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
 
             
         except Exception as e:
-            logger.error(f"Error playing file {file_name}: {e}")
+            logger.error(f"Error playing song {song_model.name}: {e}")
             self.is_playing = False
             self.playButton.setPlay(False)
 
@@ -218,8 +223,8 @@ class SakuraPlayBar(StandardMediaPlayBar):
         Handles cleanup and UI updates
         """
         try:
-            if self.playing_name in self.sakura_player_dict:
-                current_player = self.sakura_player_dict[self.playing_name]
+            if self.playing_id in self.sakura_player_dict:
+                current_player = self.sakura_player_dict[self.playing_id]
                 current_player.cleanup(force=False)  # Soft cleanup when song ends
             
             self.playButton.setPlay(False)
@@ -259,7 +264,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
             
         try:
             value = self.progressSlider.value()
-            current_player = self.sakura_player_dict.get(self.playing_name)
+            current_player = self.sakura_player_dict.get(self.playing_id)
             
             if current_player:
                 was_playing = self.is_playing
@@ -293,8 +298,8 @@ class SakuraPlayBar(StandardMediaPlayBar):
         seconds = value % 60
         self.currentTimeLabel.setText(f'{minutes}:{seconds:02d}')
         
-        if self.playing_name and self.playing_name in self.sakura_player_dict:
-            total_seconds = self.sakura_player_dict[self.playing_name].last_time // 1000
+        if self.playing_id and self.playing_id in self.sakura_player_dict:
+            total_seconds = self.sakura_player_dict[self.playing_id].last_time // 1000
             remain_seconds = total_seconds - value
             remain_minutes = remain_seconds // 60
             remain_seconds = remain_seconds % 60
@@ -336,8 +341,8 @@ class SakuraPlayBar(StandardMediaPlayBar):
             seconds = current_seconds % 60
             self.currentTimeLabel.setText(f'{minutes}:{seconds:02d}')
             
-            if self.playing_name and self.playing_name in self.sakura_player_dict:
-                total_seconds = self.sakura_player_dict[self.playing_name].last_time // 1000
+            if self.playing_id and self.playing_id in self.sakura_player_dict:
+                total_seconds = self.sakura_player_dict[self.playing_id].last_time // 1000
                 remain_seconds = total_seconds - current_seconds
                 remain_minutes = remain_seconds // 60
                 remain_seconds = remain_seconds % 60
@@ -403,8 +408,8 @@ class SakuraPlayBar(StandardMediaPlayBar):
             volume: New volume value (0.0-1.0)
         """
         try:
-            if self.playing_name in self.sakura_player_dict:
-                current_player = self.sakura_player_dict[self.playing_name]
+            if self.playing_id in self.sakura_player_dict:
+                current_player = self.sakura_player_dict[self.playing_id]
                 if hasattr(current_player, 'player') and hasattr(current_player.player, 'audio'):
                     for sound in current_player.player.audio:
                         sound.set_volume(volume)

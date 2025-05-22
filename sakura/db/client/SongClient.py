@@ -64,11 +64,12 @@ class SongClient:
         with sqlite3.connect(self.__DB_PATH__) as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                           SELECT NAME
+                           SELECT NAME, SONG_NOTES, ID
                            FROM SONGS
                            WHERE ID = ?
                            ''', (song_id,))
-            return cursor.fetchone()
+            v = cursor.fetchone()
+            return SongModel(name=v[0], songNotes=json.loads(v[1]), id=v[2])
 
     def db_is_null(self) -> bool:
         with sqlite3.connect(self.__DB_PATH__) as conn:
