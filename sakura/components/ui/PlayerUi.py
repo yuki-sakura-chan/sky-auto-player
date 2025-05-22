@@ -1,5 +1,3 @@
-import re
-
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QListWidgetItem
 from qfluentwidgets import ListWidget, SearchLineEdit
@@ -13,7 +11,6 @@ from sakura.db.JsonPick import get_file_list, load_locale_data
 
 class PlayerUi(QFrame):
     file_list_box: ListWidget
-    file_list: list[str]
     search_input: SearchLineEdit
     play: SakuraPlayBar
 
@@ -49,8 +46,8 @@ class PlayerUi(QFrame):
         file_list_box.setFixedSize(400, 600)
         file_list_box.setSpacing(0.5)
         if song_client.db_is_null():
-            self.file_list = get_file_list(conf.file_path)
-            load_locale_data(conf.file_path, self.file_list)
+            file_list = get_file_list(conf.file_path)
+            load_locale_data(conf.file_path, file_list)
         songs = song_client.select_all()
         for index, v in enumerate(songs):
             item = QListWidgetItem()
@@ -101,15 +98,15 @@ class PlayerUi(QFrame):
         if text in self._search_cache:
             results = self._search_cache[text]
         else:
-            results = [
-                file for file in self.file_list
-                if re.search(rf"{text}", file, re.IGNORECASE)
-            ]
+            results = song_client.select_by_name(text)
             self._search_cache[text] = results
 
         self.file_list_box.clear()
-        self.file_list_box.addItems(results)
-
+        for index, v in enumerate(results):
+            item = QListWidgetItem()
+            item.setText(v.name)
+            item.setData(1, v.id)
+            self.file_list_box.addItem(item)
     def handle_search_complete(self) -> None:
         self.search(self.search_input.text())
         self.search_input.clearFocus()
