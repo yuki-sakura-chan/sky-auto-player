@@ -47,7 +47,7 @@ class SongClient:
             cursor.execute('''
                            SELECT ID, NAME
                            FROM SONGS
-                           WHERE NAME like '%?%'
+                           WHERE NAME like '%' || ? || '%'
                            ''', (name,))
             return [SongModel(id=row[0], name=row[1]) for row in cursor.fetchall()]
 
