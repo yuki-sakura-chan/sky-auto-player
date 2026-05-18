@@ -7,7 +7,8 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     # 根据年月日生成日志文件
     filename=datetime.now().strftime('sap_%Y-%m-%d.log'),
-    filemode='a'  # 追加模式
+    filemode='a',  # 追加模式
+    encoding='utf-8'
 )
 
 # 创建一个日志记录器（logger）
