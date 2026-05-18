@@ -1,6 +1,7 @@
 import codecs
 import json
 import os
+from typing import Any
 
 import chardet
 
@@ -36,7 +37,23 @@ def load_json(file_path: str) -> dict:
 
 def load_locale_data(file_path: str, file_list: list[str]) -> None:
     for file in file_list:
-        data = load_json(f'{file_path}/{file}')[0]
-        model: SongModel = SongModel(**data)
-        song_client.insert(model)
-        logger.info('成功将%s插入到数据库中', model.name)
+        try:
+            data = load_json(f'{file_path}/{file}')[0]
+            if check_song_model_data(data):
+                model: SongModel = SongModel(**data)
+                song_client.insert(model)
+                logger.info('成功将%s插入到数据库中', model.name)
+            else:
+                logger.error('%s插入失败', data['name'])
+        except ValueError as e:
+            logger.error(e)
+
+
+def check_song_model_data(data: dict[Any]) -> bool:
+    song_notes = data['songNotes']
+    if not isinstance(song_notes, list):
+        return False
+    note = song_notes[0]
+    if not isinstance(note, dict):
+        return False
+    return True
