@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QListWidgetItem
-from qfluentwidgets import ListWidget, SearchLineEdit
+from qfluentwidgets import ListWidget, SearchLineEdit, PipsPager, PipsScrollButtonDisplayMode
 
 from sakura.components.SakuraPlayBar import SakuraPlayBar
 from sakura.components.ui import main_width
@@ -43,22 +43,25 @@ class PlayerUi(QFrame):
         # 加载文件列表
         file_list_layout = QVBoxLayout()
         file_list_box = ListWidget()
+        self.file_list_box = file_list_box
         file_list_box.setFixedSize(400, 600)
         file_list_box.setSpacing(0.5)
+        # 创建分页器
+        pager = PipsPager(Qt.Horizontal)
+        page_num = self.page(1)
+        pager.setPageNumber(page_num)
+        pager.setVisibleNumber(8)
+        pager.setNextButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
+        pager.setPreviousButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
+        pager.currentIndexChanged.connect(lambda i: self.page(i + 1))
         if song_client.db_is_null():
             file_list = get_file_list(conf.file_path)
             load_locale_data(conf.file_path, file_list)
-        songs = song_client.select_all()
-        for index, v in enumerate(songs):
-            item = QListWidgetItem()
-            item.setText(v.name)
-            item.setData(1, v.id)
-            file_list_box.addItem(item)
         # 添加文件列表到主容器布局
         file_list_layout.addWidget(search_input)
         file_list_layout.addWidget(file_list_box)
+        file_list_layout.addWidget(pager)
         file_info_layout.addLayout(file_list_layout)
-        self.file_list_box = file_list_box
         # 创建信息框
         info_frame = QFrame(main_container)
         # 添加信息框到主容器布局
@@ -107,6 +110,7 @@ class PlayerUi(QFrame):
             item.setText(v.name)
             item.setData(1, v.id)
             self.file_list_box.addItem(item)
+
     def handle_search_complete(self) -> None:
         self.search(self.search_input.text())
         self.search_input.clearFocus()
@@ -128,3 +132,26 @@ class PlayerUi(QFrame):
 
     def double_clicked(self) -> None:
         self.play.play()
+
+    def page(self, i: int) -> int:
+        """
+        Get songs by pagination
+
+        Args:
+            i: Current page
+        Return:
+            Page number
+        """
+        size = 15
+        keyword = self.search_input.text()
+        total = song_client.select_count(keyword)
+        if total == 0:
+            return 0
+        songs = song_client.page(i, keyword)
+        self.file_list_box.clear()
+        for index, v in enumerate(songs):
+            item = QListWidgetItem()
+            item.setText(v.name)
+            item.setData(1, v.id)
+            self.file_list_box.addItem(item)
+        return (total + size - 1) // size

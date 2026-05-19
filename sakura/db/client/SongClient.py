@@ -60,6 +60,30 @@ class SongClient:
                            ''')
             return [SongModel(id=row[0], name=row[1]) for row in cursor.fetchall()]
 
+    def select_count(self, keyword: str = '') -> int:
+        with sqlite3.connect(self.__DB_PATH__) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                        SELECT COUNT(*)
+                        FROM SONGS
+                        WHERE NAME LIKE ?
+            ''', (f'%{keyword}%',))
+            return cursor.fetchone()[0]
+
+    def page(self, current: int, keyword: str = '') -> list[SongModel]:
+        with sqlite3.connect(self.__DB_PATH__) as conn:
+            size: int = 15
+            off: int = (current - 1) * size
+            cursor = conn.cursor()
+            cursor.execute('''
+                        SELECT ID, NAME, AUTHOR, BPM
+                        FROM SONGS
+                        WHERE NAME LIKE ?
+                        LIMIT ? OFFSET ?
+            ''', (f'%{keyword}%', size, off,))
+            return [SongModel(id=row[0], name=row[1], author=row[2], bpm=row[3]) for row in
+                    cursor.fetchall()]
+
     def select_by_id(self, song_id: int) -> SongModel:
         with sqlite3.connect(self.__DB_PATH__) as conn:
             cursor = conn.cursor()
