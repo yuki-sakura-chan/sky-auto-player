@@ -46,6 +46,9 @@ class PlayerUi(QFrame):
         self.file_list_box = file_list_box
         file_list_box.setFixedSize(400, 600)
         file_list_box.setSpacing(0.5)
+        if song_client.db_is_null():
+            file_list = get_file_list(conf.file_path)
+            load_locale_data(conf.file_path, file_list)
         # 创建分页器
         pager = PipsPager(Qt.Horizontal)
         page_num = self.page(1)
@@ -54,9 +57,6 @@ class PlayerUi(QFrame):
         pager.setNextButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
         pager.setPreviousButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
         pager.currentIndexChanged.connect(lambda i: self.page(i + 1))
-        if song_client.db_is_null():
-            file_list = get_file_list(conf.file_path)
-            load_locale_data(conf.file_path, file_list)
         # 添加文件列表到主容器布局
         file_list_layout.addWidget(search_input)
         file_list_layout.addWidget(file_list_box)
