@@ -1,7 +1,8 @@
 import json
 import sqlite3
+from pathlib import Path
 
-from sakura.config import conf
+from sakura.config import conf, app_data
 from sakura.db.model.SongModel import SongModel
 
 
@@ -9,7 +10,10 @@ class SongClient:
     __DB_PATH__: str
 
     def __init__(self):
-        self.__DB_PATH__ = conf.db.path
+        db_dir = app_data / 'db'
+        if not db_dir.exists():
+            db_dir.mkdir()
+        self.__DB_PATH__ = db_dir / conf.db.name
         self._create_table()
 
     def _create_table(self):

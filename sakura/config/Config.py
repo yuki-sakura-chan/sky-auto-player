@@ -3,30 +3,30 @@ from pydantic import BaseModel
 
 
 class Player(BaseModel):
-    instruments: str
-    type: str
-    volume: float
+    instruments: str = 'Piano'
+    type: str = 'demo'
+    volume: float = 0.5
 
 
 class Mapping(BaseModel):
-    type: str
+    type: str = 'json'
 
 
 class ADB(BaseModel):
-    path: str
+    path: str = ''
 
 
 class Control(BaseModel):
-    speed: str
+    speed: str = '0.01'
 
 class DB(BaseModel):
-    path: str
+    name: str = 'sap.db'
 
 class Config(BaseModel):
-    file_path: str
-    region: str
-    adb: ADB
-    player: Player
-    mapping: Mapping
-    control: Control
-    db: DB
+    file_path: str = 'resources/music/studio/txt'
+    region: str = 'zh-CN'
+    adb: ADB = ADB()
+    player: Player = Player()
+    mapping: Mapping = Mapping()
+    control: Control = Control()
+    db: DB = DB()
