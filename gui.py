@@ -7,6 +7,7 @@ from qfluentwidgets import NavigationItemPosition, FluentWindow
 
 import resources.resources_rc  # noqa
 from sakura import children_windows
+from sakura.components.SingleApplication import SingleApplication
 from sakura.components.ui.Home import Home
 from sakura.components.ui.PlayerUi import PlayerUi
 from sakura.components.ui.Settings import SettingsUi
@@ -44,13 +45,41 @@ class Window(FluentWindow):
         for item in children_windows:
             item.close()
 
+    # 显示窗口
+    def show_window(self):
+
+        # 如果窗口最小化
+        if self.isMinimized():
+
+            # 恢复正常状态
+            self.showNormal()
+
+        # 显示窗口
+        self.show()
+
+        # 提升窗口层级
+        # 类似置顶到最前面
+        self.raise_()
+
+        # 激活窗口
+        # 获取焦点
+        self.activateWindow()
+
 
 if __name__ == '__main__':
     setTheme(Theme.AUTO)
     app = QApplication(sys.argv)
+    # 创建单实例对象
+    single_app = SingleApplication("sakura_auto_player")
+    if single_app.already_running():
+        # 直接退出当前进程
+        sys.exit(0)
     screen = app.primaryScreen()
     screen_rect = screen.availableGeometry()
     w = Window()
+    # 收到 show 消息时
+    # 调用窗口显示函数
+    single_app.on_show = w.show_window
     x = (screen_rect.width() - w.width()) // 2
     y = (screen_rect.height() - w.height()) // 2
     w.move(x, y)

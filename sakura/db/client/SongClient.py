@@ -1,6 +1,5 @@
 import json
 import sqlite3
-from pathlib import Path
 
 from sakura.config import conf, app_data
 from sakura.db.model.SongModel import SongModel
@@ -44,6 +43,13 @@ class SongClient:
                             model.pitchLevel, json.dumps(model.songNotes), model.detail))
             conn.commit()
             return cursor.lastrowid
+
+    def delete_by_id(self, song_id: int):
+        with sqlite3.connect(self.__DB_PATH__) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                        DELETE FROM SONGS WHERE ID = ?
+            ''', (song_id,))
 
     def select_by_name(self, name: str) -> list[SongModel]:
         with sqlite3.connect(self.__DB_PATH__) as conn:
@@ -105,5 +111,6 @@ class SongClient:
             cursor.execute('''
                            SELECT COUNT(*)
                            FROM SONGS
+                           LIMIT 1
                            ''')
             return cursor.fetchone()[0] == 0
