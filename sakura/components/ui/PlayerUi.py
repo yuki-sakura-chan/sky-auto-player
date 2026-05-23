@@ -1,3 +1,5 @@
+import time
+
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QListWidgetItem
 from qfluentwidgets import ListWidget, SearchLineEdit, PipsPager, PipsScrollButtonDisplayMode
@@ -5,17 +7,23 @@ from qfluentwidgets import ListWidget, SearchLineEdit, PipsPager, PipsScrollButt
 from sakura.components.SakuraPlayBar import SakuraPlayBar
 from sakura.components.ui import main_width
 from sakura.config import conf
+from sakura.config.sakura_logging import logger
 from sakura.db.DBManager import song_client
 from sakura.db.JsonPick import get_file_list, load_locale_data
+from sakura.db.model.PageData import PageData
 
 
 class PlayerUi(QFrame):
     file_list_box: ListWidget
     search_input: SearchLineEdit
     play: SakuraPlayBar
+    pager: PipsPager
+    _search_last = 0
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._current_search = ''
+        self._search_cache = {}
         self.setObjectName("Player")
         # 创建主布局
         main_layout = QVBoxLayout(self)
@@ -51,12 +59,12 @@ class PlayerUi(QFrame):
             load_locale_data(conf.file_path, file_list)
         # 创建分页器
         pager = PipsPager(Qt.Horizontal)
-        page_num = self.page(1)
-        pager.setPageNumber(page_num)
+        self.pager = pager
         pager.setVisibleNumber(8)
         pager.setNextButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
         pager.setPreviousButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
-        pager.currentIndexChanged.connect(lambda i: self.page(i + 1))
+        self._perform_search(1)
+        pager.currentIndexChanged.connect(lambda i: self._perform_search(i + 1))
         # 添加文件列表到主容器布局
         file_list_layout.addWidget(search_input)
         file_list_layout.addWidget(file_list_box)
@@ -83,7 +91,6 @@ class PlayerUi(QFrame):
         self._search_timer = QTimer()
         self._search_timer.setSingleShot(True)
         self._search_timer.timeout.connect(self._perform_search)
-        self._search_cache = {}
 
     def clear_search(self) -> None:
         self.search('')
@@ -96,20 +103,27 @@ class PlayerUi(QFrame):
         self._search_timer.start(100)
         self._current_search = text
 
-    def _perform_search(self) -> None:
+    def _perform_search(self, current: int = 1) -> None:
+        # 防抖
+        now = time.time()
+        if now - self._search_last < 0.1:
+            return
+        self._search_last = now
         text = self._current_search
-        if text in self._search_cache:
-            results = self._search_cache[text]
+        cache = {}
+        if text != '' and f'{text}:{current}' in self._search_cache:
+            cache = self._search_cache[f'{text}:{current}']
+            logger.info('使用了缓存进行搜索')
         else:
-            results = song_client.select_by_name(text)
-            self._search_cache[text] = results
-
+            results = self.page(current, keyword=text)
+            cache['data'] = results.data
+            cache['pageNumber'] = results.get_page_number()
+            self._search_cache[f'{text}:{current}'] = cache
+        # 防止频繁改变 pagerNumber 的值
+        if self.pager.getPageNumber() != cache['pageNumber']:
+            self.pager.setPageNumber(cache['pageNumber'])
         self.file_list_box.clear()
-        for index, v in enumerate(results):
-            item = QListWidgetItem()
-            item.setText(v.name)
-            item.setData(1, v.id)
-            self.file_list_box.addItem(item)
+        self.load_songs(cache['data'])
 
     def handle_search_complete(self) -> None:
         self.search(self.search_input.text())
@@ -133,25 +147,30 @@ class PlayerUi(QFrame):
     def double_clicked(self) -> None:
         self.play.play()
 
-    def page(self, i: int) -> int:
-        """
-        Get songs by pagination
-
-        Args:
-            i: Current page
-        Return:
-            Page number
-        """
-        size = 15
-        keyword = self.search_input.text()
-        total = song_client.select_count(keyword)
-        if total == 0:
-            return 0
-        songs = song_client.page(i, keyword)
+    def load_songs(self, songs: list) -> None:
         self.file_list_box.clear()
         for index, v in enumerate(songs):
             item = QListWidgetItem()
             item.setText(v.name)
             item.setData(1, v.id)
             self.file_list_box.addItem(item)
-        return (total + size - 1) // size
+
+    def page(self, current: int = 1, keyword: str = '') -> PageData:
+        """
+        Get songs by pagination
+
+        Args:
+            current: Current page
+            keyword: Keyword
+        Return:
+            Page number
+        """
+        page_data = PageData(size=15)
+        total = song_client.select_count(keyword)
+        if total == 0:
+            return PageData()
+        songs = song_client.page(current, keyword, page_data.size)
+        page_data.data = songs
+        page_data.total = total
+        self.file_list_box.clear()
+        return page_data

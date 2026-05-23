@@ -80,9 +80,8 @@ class SongClient:
             ''', (f'%{keyword}%',))
             return cursor.fetchone()[0]
 
-    def page(self, current: int, keyword: str = '') -> list[SongModel]:
+    def page(self, current: int, keyword: str = '', size: int = 15) -> list[SongModel]:
         with sqlite3.connect(self.__DB_PATH__) as conn:
-            size: int = 15
             off: int = (current - 1) * size
             cursor = conn.cursor()
             cursor.execute('''
