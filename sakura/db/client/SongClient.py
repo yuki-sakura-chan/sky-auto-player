@@ -44,12 +44,14 @@ class SongClient:
             conn.commit()
             return cursor.lastrowid
 
-    def delete_by_id(self, song_id: int):
+    def delete_by_id(self, song_id: int) -> bool:
         with sqlite3.connect(self.__DB_PATH__) as conn:
             cursor = conn.cursor()
             cursor.execute('''
                         DELETE FROM SONGS WHERE ID = ?
             ''', (song_id,))
+            conn.commit()
+            return cursor.rowcount > 0
 
     def select_by_name(self, name: str) -> list[SongModel]:
         with sqlite3.connect(self.__DB_PATH__) as conn:

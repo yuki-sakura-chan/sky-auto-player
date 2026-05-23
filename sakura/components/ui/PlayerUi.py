@@ -2,7 +2,8 @@ import time
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QListWidgetItem
-from qfluentwidgets import ListWidget, SearchLineEdit, PipsPager, PipsScrollButtonDisplayMode
+from qfluentwidgets import ListWidget, SearchLineEdit, PipsPager, PipsScrollButtonDisplayMode, ToolButton, FluentIcon, \
+    TitleLabel, MessageBox
 
 from sakura.components.SakuraPlayBar import SakuraPlayBar
 from sakura.components.ui import main_width
@@ -11,6 +12,7 @@ from sakura.config.sakura_logging import logger
 from sakura.db.DBManager import song_client
 from sakura.db.JsonPick import get_file_list, load_locale_data
 from sakura.db.model.PageData import PageData
+from sakura.db.model.SongModel import SongModel
 
 
 class PlayerUi(QFrame):
@@ -31,7 +33,6 @@ class PlayerUi(QFrame):
         main_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
         # 创建主容器
         main_container = QFrame()
-        main_container.setFixedWidth(main_width)
         # 添加主容器到主布局
         main_layout.addWidget(main_container)
         main_container.setFixedWidth(main_width)
@@ -47,12 +48,13 @@ class PlayerUi(QFrame):
         search_input.textChanged.connect(self.update_search)
         search_input.returnPressed.connect(self.handle_search_complete)
         search_input.installEventFilter(self)
+        search_input.setFixedWidth(400)
         self.search_input = search_input
         # 加载文件列表
         file_list_layout = QVBoxLayout()
         file_list_box = ListWidget()
         self.file_list_box = file_list_box
-        file_list_box.setFixedSize(400, 600)
+        file_list_box.setFixedSize(search_input.width(), 600)
         file_list_box.setSpacing(0.5)
         if song_client.db_is_null():
             file_list = get_file_list(conf.file_path)
@@ -63,7 +65,7 @@ class PlayerUi(QFrame):
         pager.setVisibleNumber(8)
         pager.setNextButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
         pager.setPreviousButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
-        self._perform_search(1)
+        self._perform_search()
         pager.currentIndexChanged.connect(lambda i: self._perform_search(i + 1))
         # 添加文件列表到主容器布局
         file_list_layout.addWidget(search_input)
@@ -72,6 +74,23 @@ class PlayerUi(QFrame):
         file_info_layout.addLayout(file_list_layout)
         # 创建信息框
         info_frame = QFrame(main_container)
+        info_frame.setFixedHeight(file_list_box.height())
+        info_frame.setFixedWidth(int(main_container.width() - search_input.width() * 1.1))
+        info_header_layout = QHBoxLayout(info_frame)
+        # 创建删除按钮
+        delete_button = ToolButton()
+        delete_button.setIcon(FluentIcon.DELETE)
+        # 创建标题标签
+        info_title = TitleLabel()
+        info_title.setText('请选择您要播放的音乐')
+        self.delete_button = delete_button
+        self.info_title = info_title
+        info_header_layout.addWidget(info_title)
+        info_header_layout.addStretch()
+        info_header_layout.addWidget(delete_button)
+        info_header_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+        file_list_box.clicked.connect(lambda e: self.info_title.setText(file_list_box.currentItem().text()))
+        delete_button.clicked.connect(self.delete_song)
         # 添加信息框到主容器布局
         file_info_layout.addWidget(info_frame)
         # 创建播放器布局
@@ -108,6 +127,7 @@ class PlayerUi(QFrame):
         now = time.time()
         if now - self._search_last < 0.1:
             return
+        self._current = current
         self._search_last = now
         text = self._current_search
         cache = {}
@@ -147,11 +167,10 @@ class PlayerUi(QFrame):
     def double_clicked(self) -> None:
         self.play.play()
 
-    def load_songs(self, songs: list) -> None:
+    def load_songs(self, songs: list[SongModel]) -> None:
         self.file_list_box.clear()
         for index, v in enumerate(songs):
-            item = QListWidgetItem()
-            item.setText(v.name)
+            item = QListWidgetItem(v.name)
             item.setData(1, v.id)
             self.file_list_box.addItem(item)
 
@@ -174,3 +193,19 @@ class PlayerUi(QFrame):
         page_data.total = total
         self.file_list_box.clear()
         return page_data
+
+    def delete_song(self) -> None:
+        item = self.file_list_box.currentItem()
+        if item is None:
+            return
+        song_id = item.data(1)
+        title = '警告'
+        content = '此操作将永久删除该歌曲，是否继续？'
+        m = MessageBox(title, content, self)
+        m.setClosableOnMaskClicked(True)
+        if m.exec():
+            flag = song_client.delete_by_id(song_id)
+            if flag:
+                self._perform_search(self._current)
+            print(song_id)
+            # TODO 解决删除数据后 info 页数据不更新的问题
