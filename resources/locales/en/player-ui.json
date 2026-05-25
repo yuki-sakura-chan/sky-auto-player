@@ -1,0 +1,5 @@
+{
+  "delete.dialog.title": "warning",
+  "delete.dialog.content": "This operation will permanently delete the song. Do you want to continue?",
+  "info.title": "Please select the music you want to play"
+}

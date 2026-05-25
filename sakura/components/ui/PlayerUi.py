@@ -13,6 +13,7 @@ from sakura.db.DBManager import song_client
 from sakura.db.JsonPick import get_file_list, load_locale_data
 from sakura.db.model.PageData import PageData
 from sakura.db.model.SongModel import SongModel
+from sakura.locales.locale import load_locale_messages
 
 
 class PlayerUi(QFrame):
@@ -27,6 +28,8 @@ class PlayerUi(QFrame):
         self._current_search = ''
         self._search_cache = {}
         self.setObjectName("Player")
+        self.locales = load_locale_messages('player-ui')
+        locales = self.locales
         # 创建主布局
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -82,14 +85,14 @@ class PlayerUi(QFrame):
         delete_button.setIcon(FluentIcon.DELETE)
         # 创建标题标签
         info_title = TitleLabel()
-        info_title.setText('请选择您要播放的音乐')
+        info_title.setText(locales.messages('info.title'))
         self.delete_button = delete_button
         self.info_title = info_title
         info_header_layout.addWidget(info_title)
         info_header_layout.addStretch()
         info_header_layout.addWidget(delete_button)
         info_header_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
-        file_list_box.clicked.connect(lambda e: self.info_title.setText(file_list_box.currentItem().text()))
+        file_list_box.clicked.connect(self.song_info)
         delete_button.clicked.connect(self.delete_song)
         # 添加信息框到主容器布局
         file_info_layout.addWidget(info_frame)
@@ -133,7 +136,6 @@ class PlayerUi(QFrame):
         cache = {}
         if text != '' and f'{text}:{current}' in self._search_cache:
             cache = self._search_cache[f'{text}:{current}']
-            logger.info('使用了缓存进行搜索')
         else:
             results = self.page(current, keyword=text)
             cache['data'] = results.data
@@ -194,13 +196,17 @@ class PlayerUi(QFrame):
         self.file_list_box.clear()
         return page_data
 
+    def song_info(self) -> None:
+        self.info_title.setText(self.file_list_box.currentItem().text())
+
     def delete_song(self) -> None:
         item = self.file_list_box.currentItem()
         if item is None:
             return
         song_id = item.data(1)
-        title = '警告'
-        content = '此操作将永久删除该歌曲，是否继续？'
+        locales = self.locales
+        title = locales.messages('delete.dialog.title')
+        content = locales.messages('delete.dialog.content')
         m = MessageBox(title, content, self)
         m.setClosableOnMaskClicked(True)
         if m.exec():
