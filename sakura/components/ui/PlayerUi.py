@@ -8,7 +8,6 @@ from qfluentwidgets import ListWidget, SearchLineEdit, PipsPager, PipsScrollButt
 from sakura.components.SakuraPlayBar import SakuraPlayBar
 from sakura.components.ui import main_width
 from sakura.config import conf
-from sakura.config.sakura_logging import logger
 from sakura.db.DBManager import song_client
 from sakura.db.JsonPick import get_file_list, load_locale_data
 from sakura.db.model.PageData import PageData
@@ -22,6 +21,7 @@ class PlayerUi(QFrame):
     play: SakuraPlayBar
     pager: PipsPager
     _search_last = 0
+    _selected_info_song_id: int = 0
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -63,7 +63,7 @@ class PlayerUi(QFrame):
             file_list = get_file_list(conf.file_path)
             load_locale_data(conf.file_path, file_list)
         # 创建分页器
-        pager = PipsPager(Qt.Horizontal)
+        pager = PipsPager(orientation=Qt.Orientation.Horizontal)
         self.pager = pager
         pager.setVisibleNumber(8)
         pager.setNextButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
@@ -144,8 +144,14 @@ class PlayerUi(QFrame):
         # 防止频繁改变 pagerNumber 的值
         if self.pager.getPageNumber() != cache['pageNumber']:
             self.pager.setPageNumber(cache['pageNumber'])
-        self.file_list_box.clear()
         self.load_songs(cache['data'])
+        file_list = self.file_list_box
+        for i in range(file_list.count()):
+            item = file_list.item(i)
+            if item.data(1) == self._selected_info_song_id:
+                file_list.setCurrentItem(item)
+                return
+        file_list.setCurrentItem(None)
 
     def handle_search_complete(self) -> None:
         self.search(self.search_input.text())
@@ -193,25 +199,33 @@ class PlayerUi(QFrame):
         songs = song_client.page(current, keyword, page_data.size)
         page_data.data = songs
         page_data.total = total
-        self.file_list_box.clear()
         return page_data
 
     def song_info(self) -> None:
-        self.info_title.setText(self.file_list_box.currentItem().text())
+        info_title = self.info_title
+        file_list_box = self.file_list_box
+        current_item = file_list_box.currentItem()
+        song_id = current_item.data(1)
+        self._selected_info_song_id = song_id
+        song = song_client.select_by_id(song_id)
+        info_title.setText(song.name if song else self.locales.messages('info.title'))
 
     def delete_song(self) -> None:
-        item = self.file_list_box.currentItem()
-        if item is None:
+        song_id = self._selected_info_song_id
+        if song_id == 0:
             return
-        song_id = item.data(1)
+        song = song_client.select_by_id(song_id)
+        if song is None:
+            return
         locales = self.locales
         title = locales.messages('delete.dialog.title')
-        content = locales.messages('delete.dialog.content')
+        content = locales.messages('delete.dialog.content').format(song.name)
         m = MessageBox(title, content, self)
         m.setClosableOnMaskClicked(True)
         if m.exec():
             flag = song_client.delete_by_id(song_id)
             if flag:
                 self._perform_search(self._current)
-            print(song_id)
-            # TODO 解决删除数据后 info 页数据不更新的问题
+                self._search_cache.clear()
+                self.play.pause()
+                self.info_title.setText(locales.messages('info.title'))

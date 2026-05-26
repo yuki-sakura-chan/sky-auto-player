@@ -104,7 +104,7 @@ class SongClient:
                            WHERE ID = ?
                            ''', (song_id,))
             v = cursor.fetchone()
-            return SongModel(name=v[0], songNotes=json.loads(v[1]), id=v[2])
+            return SongModel(name=v[0], songNotes=json.loads(v[1]), id=v[2]) if v else None
 
     def db_is_null(self) -> bool:
         with sqlite3.connect(self.__DB_PATH__) as conn:

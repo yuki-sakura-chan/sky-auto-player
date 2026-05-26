@@ -28,12 +28,6 @@ class SakuraPlayBar(StandardMediaPlayBar):
     is_playing: bool = False
     file_list_box: ListWidget
     playing_id: int = 0
-    '''
-        此变量本意是为了减少重复解析json文件，因为只需要 song_notes 字段 (因为除了 song_notes 字段外，其他字段全是无效字段），
-        所以将 SakuraPlayer 对象放到数组中，等用户播放重复性的 song 时，可以跳过 json 解析。
-        因为没写注解的原因，可能被他人误解了？反正这件事告诉了我写注释的重要性...
-        懒得改了，等哪天心情好改一下
-    '''
     sakura_player_dict: dict[int, SakuraPlayer] = {}
     temp_window: QWidget
     temp_layout: QVBoxLayout
