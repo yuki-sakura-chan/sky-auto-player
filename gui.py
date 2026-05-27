@@ -2,7 +2,7 @@ import sys
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
-from qfluentwidgets import FluentIcon as FIF, setTheme, Theme
+from qfluentwidgets import FluentIcon as FIF, setTheme, Theme, NavigationDisplayMode
 from qfluentwidgets import NavigationItemPosition, FluentWindow
 
 import resources.resources_rc  # noqa
@@ -36,7 +36,7 @@ class Window(FluentWindow):
     def init_window(self):
         self.setMinimumHeight(800)
         self.setMinimumWidth(1286)
-        self.navigationInterface.setExpandWidth(180)
+        self.navigationInterface.setMinimumExpandWidth(10000)
         self.setWindowIcon(QIcon(':/sakura/icon/logo-128x128.ico'))
         self.setWindowTitle('Sky Auto Player')
 
