@@ -1,12 +1,27 @@
 import os
 import sys
 
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QSizePolicy, QSpacerItem
-from qfluentwidgets import GroupHeaderCardWidget, FluentIcon, ComboBox, LineEdit, Dialog
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QSizePolicy, QSpacerItem, QFileDialog
+from qfluentwidgets import GroupHeaderCardWidget, FluentIcon, ComboBox, LineEdit, Dialog, ToolButton
 
 from sakura.components.ui import languages
 from sakura.config import conf, save_conf
-from sakura.locales.locale import load_locale_messages, Locale
+from sakura.locales.locale import load_locale_messages
+
+locales = load_locale_messages('settings')
+
+
+
+def update_config(attribute: str, value: str, attributes: LineEdit) -> None:
+    try:
+        if attribute == 'control.speed':
+            conf.control.speed = str(float(value))
+        # elif attribute == 'player.type':
+        #     conf.player.type = value
+        save_conf(conf)
+        attributes.clearFocus()
+    except Exception as e:
+        raise RuntimeError(f"An unexpected error occurred while updating {attribute} - {value}: {e}")
 
 
 class BaseSettingsGroup(GroupHeaderCardWidget):
@@ -18,14 +33,11 @@ class BaseSettingsGroup(GroupHeaderCardWidget):
 class SystemSettingsGroup(BaseSettingsGroup):
     items: list[str] = ['demo', 'win']
     languages: list[str] = ['简体中文', '繁體中文', 'English']
-    locales: Locale
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.locales = load_locale_messages('settings')
-        self.setTitle(self.locales.messages('title'))
+        self.setTitle(locales.messages('title'))
         self.create_combo_box(parent)
-        self.create_speed_control(parent)
         self.create_language_change_box(parent)
 
     def create_combo_box(self, parent):
@@ -33,17 +45,8 @@ class SystemSettingsGroup(BaseSettingsGroup):
         combo.addItems(self.items)
         combo.setCurrentIndex(self.items.index(conf.player.type))
         combo.currentIndexChanged.connect(self.current_index_changed)
-        self.addGroup(FluentIcon.TILES, self.locales.messages('play_type.title'),
-                      self.locales.messages('play_type.content'), combo)
-
-    def create_speed_control(self, parent):
-        speed_control = LineEdit(parent)
-        speed_control.setPlaceholderText(self.locales.messages('speed_control.PlaceholderText'))
-        speed_control.setText(str(conf.control.speed))
-        speed_control.editingFinished.connect(
-            lambda: self.update_config('control.speed', speed_control.text(), speed_control))
-        self.addGroup(FluentIcon.ADD, self.locales.messages('speed_control.title'),
-                      self.locales.messages('speed_control.content'), speed_control)
+        self.addGroup(FluentIcon.TILES, locales.messages('play_type.title'),
+                      locales.messages('play_type.content'), combo)
 
     def create_language_change_box(self, parent):
         combo = ComboBox(parent)
@@ -51,8 +54,8 @@ class SystemSettingsGroup(BaseSettingsGroup):
         current_items = next((k for k, v in languages.items() if v["key"] == conf.region), None)
         combo.setCurrentIndex(self.languages.index(current_items))
         combo.currentIndexChanged.connect(self.language_changed)
-        self.addGroup(FluentIcon.LANGUAGE, self.locales.messages('region.title'),
-                      self.locales.messages('region.content'), combo)
+        self.addGroup(FluentIcon.LANGUAGE, locales.messages('region.title'),
+                      locales.messages('region.content'), combo)
 
     def current_index_changed(self, index: int) -> None:
         conf.player.type = self.items[index]
@@ -67,16 +70,35 @@ class SystemSettingsGroup(BaseSettingsGroup):
             save_conf(conf)
             os.execl(sys.executable, sys.executable, *sys.argv)
 
-    def update_config(self, attribute: str, value: str, attributes: LineEdit) -> None:
-        try:
-            if attribute == 'control.speed':
-                conf.control.speed = str(float(value))
-            # elif attribute == 'player.type':
-            #     conf.player.type = value
-            save_conf(conf)
-            attributes.clearFocus()
-        except Exception as e:
-            raise RuntimeError(f"An unexpected error occurred while updating {attribute} - {value}: {e}")
+
+class SongsSettingsGroup(BaseSettingsGroup):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setTitle('歌曲设置')
+        self.create_speed_control(parent)
+        self.create_songs_file_import(parent)
+
+    def create_speed_control(self, parent):
+        speed_control = LineEdit(parent)
+        speed_control.setPlaceholderText(locales.messages('speed_control.PlaceholderText'))
+        speed_control.setText(str(conf.control.speed))
+        speed_control.editingFinished.connect(
+            lambda: update_config('control.speed', speed_control.text(), speed_control))
+        self.addGroup(FluentIcon.ADD, locales.messages('speed_control.title'),
+                      locales.messages('speed_control.content'), speed_control)
+
+    def create_songs_file_import(self, parent):
+        button = ToolButton(parent)
+        button.setIcon(FluentIcon.FOLDER)
+        self.addGroup(FluentIcon.ADD, locales.messages('songs.file_import.title'), locales.messages('songs.file_import.content'), button)
+        button.clicked.connect(self.select_files)
+
+    def select_files(self):
+        paths, _ = QFileDialog.getOpenFileNames(self, locales.messages('songs.select_files.caption'), '', 'JSON Files (*.json);;All Files (*)')
+        if paths:
+            for path in paths:
+                print(path)
+
 
 
 class SettingsUi(QFrame):
@@ -85,8 +107,10 @@ class SettingsUi(QFrame):
         self.setObjectName('Settings')
         layout = QVBoxLayout(self)
         system = SystemSettingsGroup()
+        songs = SongsSettingsGroup()
         spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(system)
+        layout.addWidget(songs)
         layout.addSpacerItem(spacer)
 
     def mousePressEvent(self, event) -> None:

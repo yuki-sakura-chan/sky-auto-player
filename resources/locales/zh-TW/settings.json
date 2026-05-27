@@ -6,5 +6,8 @@
   "speed_control.title": "速度控制",
   "speed_control.content": "設定每拍增加的速度",
   "region.title": "語言",
-  "region.content": "請選擇適合您的語言"
+  "region.content": "請選擇適合您的語言",
+    "songs.file_import.title": "歌曲文件導入",
+    "songs.file_import.content": "從本地導入歌曲文件",
+    "songs.select_files.caption": "選擇歌曲文件"
 }

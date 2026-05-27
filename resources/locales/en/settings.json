@@ -6,5 +6,8 @@
   "speed_control.title": "Speed Control",
   "speed_control.content": "Set how much the speed increases per beat",
   "region.title": "Language",
-  "region.content": "Please select your language"
+  "region.content": "Please select your language",
+    "songs.file_import.title": "Song File Import",
+    "songs.file_import.content": "Import song files from local",
+    "songs.select_files.caption": "Select Song Files"
 }
