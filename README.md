@@ -66,6 +66,10 @@ The project package is named `sakura` because I like cherry blossoms. 😜
 
 This project was inspired by @Tloml-Starry's [SkyAutoMusic](https://github.com/Tloml-Starry/SkyAutoMusic) project. Special thanks for the inspiration provided by their work.
 
+## Disclaimer
+
+This project is intended for educational and entertainment purposes only. It is not affiliated with or endorsed by the developers of *Sky: Children of the Light*. Users are responsible for ensuring that their use of this program complies with the game's terms of service and does not violate any rules or guidelines.
+
 ## License
 
 This project is licensed under the [MIT License](./LICENSE).

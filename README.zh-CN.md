@@ -67,6 +67,10 @@ pip install -r requirements.txt
 
 本项目的灵感来源于 @Tloml-Starry 的项目：[SkyAutoMusic](https://github.com/Tloml-Starry/SkyAutoMusic)。特别感谢他的作品为本项目提供了启发。
 
+## 免责声明
+
+本项目仅供教育和娱乐用途，与《光·遇》的开发商没有任何关联，也未获得其认可。用户有责任确保其对本程序的使用符合游戏的服务条款，且不违反任何规则或指南。
+
 ## License
 
 本项目采用 [MIT 许可证](./LICENSE)。
