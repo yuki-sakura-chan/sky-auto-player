@@ -3,13 +3,13 @@ import time
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QListWidgetItem
 from qfluentwidgets import ListWidget, SearchLineEdit, PipsPager, PipsScrollButtonDisplayMode, ToolButton, FluentIcon, \
-    TitleLabel, MessageBox
+    TitleLabel, MessageBox, InfoBar, InfoBarPosition
 
 from sakura.components.SakuraPlayBar import SakuraPlayBar
 from sakura.components.ui import main_width
 from sakura.config import conf
 from sakura.db.DBManager import song_client
-from sakura.db.JsonPick import get_file_list, load_locale_data
+from sakura.db.JsonPick import get_file_list, insert_locale_data
 from sakura.db.model.PageData import PageData
 from sakura.db.model.SongModel import SongModel
 from sakura.locales.locale import load_locale_messages
@@ -61,7 +61,7 @@ class PlayerUi(QFrame):
         file_list_box.setSpacing(0.5)
         if song_client.db_is_null():
             file_list = get_file_list(conf.file_path)
-            load_locale_data(conf.file_path, file_list)
+            insert_locale_data(conf.file_path, file_list)
         # 创建分页器
         pager = PipsPager(orientation=Qt.Orientation.Horizontal)
         self.pager = pager
@@ -225,6 +225,14 @@ class PlayerUi(QFrame):
         if m.exec():
             flag = song_client.delete_by_id(song_id)
             if flag:
+                InfoBar.success(
+                    title=locales.messages('delete.success.title'),
+                    content=locales.messages('delete.success.content').format(song.name),
+                    isClosable=True,
+                    position=InfoBarPosition.TOP_RIGHT,
+                    duration=2000,
+                    parent=self
+                )
                 self._perform_search(self._current)
                 self._search_cache.clear()
                 self.play.pause()

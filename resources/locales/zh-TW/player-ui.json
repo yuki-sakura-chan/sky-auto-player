@@ -1,5 +1,7 @@
 {
   "delete.dialog.title": "警告",
   "delete.dialog.content": "此操作將永久刪除《{}》，是否繼續？",
+    "delete.success.title": "刪除成功",
+    "delete.success.content": "《{}》已成功刪除",
   "info.title": "請選擇您要播放的音樂"
 }

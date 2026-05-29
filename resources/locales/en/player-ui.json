@@ -1,5 +1,7 @@
 {
   "delete.dialog.title": "warning",
   "delete.dialog.content": "This action will permanently delete \"{}\". Do you want to continue?",
+    "delete.success.title": "Delete successfully",
+    "delete.success.content": "\"{}\" has been deleted successfully",
   "info.title": "Please select the music you want to play"
 }
