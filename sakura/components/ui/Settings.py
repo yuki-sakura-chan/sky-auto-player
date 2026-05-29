@@ -1,15 +1,16 @@
 import os
 import sys
+from pathlib import Path
 
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QSizePolicy, QSpacerItem, QFileDialog
 from qfluentwidgets import GroupHeaderCardWidget, FluentIcon, ComboBox, LineEdit, Dialog, ToolButton
 
 from sakura.components.ui import languages
 from sakura.config import conf, save_conf
+from sakura.db.JsonPick import insert_locale_data
 from sakura.locales.locale import load_locale_messages
 
 locales = load_locale_messages('settings')
-
 
 
 def update_config(attribute: str, value: str, attributes: LineEdit) -> None:
@@ -90,15 +91,23 @@ class SongsSettingsGroup(BaseSettingsGroup):
     def create_songs_file_import(self, parent):
         button = ToolButton(parent)
         button.setIcon(FluentIcon.FOLDER)
-        self.addGroup(FluentIcon.ADD, locales.messages('songs.file_import.title'), locales.messages('songs.file_import.content'), button)
+        self.addGroup(FluentIcon.ADD, locales.messages('songs.file_import.title'),
+                      locales.messages('songs.file_import.content'), button)
         button.clicked.connect(self.select_files)
 
     def select_files(self):
-        paths, _ = QFileDialog.getOpenFileNames(self, locales.messages('songs.select_files.caption'), '', 'JSON Files (*.json);;All Files (*)')
+        paths, _ = QFileDialog.getOpenFileNames(self, locales.messages('songs.select_files.caption'), '',
+                                                'JSON Files (*.json);;All Files (*)')
         if paths:
-            for path in paths:
-                print(path)
-
+            path_dict = {}
+            for p in paths:
+                path = Path(p)
+                if str(path.parent) not in path_dict:
+                    path_dict[str(path.parent)] = [path.name]
+                else:
+                    path_dict[str(path.parent)].append(path.name)
+            for k, v in path_dict.items():
+                insert_locale_data(k, v)
 
 
 class SettingsUi(QFrame):

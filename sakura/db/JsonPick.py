@@ -35,9 +35,12 @@ def load_json(file_path: str) -> dict:
         raise ValueError(f"Failed to decode JSON file {file_path} using detected encoding {encoding}: {e}")
 
 
-def load_locale_data(file_path: str, file_list: list[str]) -> None:
+def insert_locale_data(file_path: str, file_list: list[str]) -> None:
     for file in file_list:
         try:
+            if not file.lower().endswith('.json'):
+                logger.warning('跳过非JSON文件: %s', file)
+                continue
             data = load_json(f'{file_path}/{file}')[0]
             if check_song_model_data(data):
                 model: SongModel = SongModel(**data)
