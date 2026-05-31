@@ -9,15 +9,14 @@ from pynput import keyboard
 from qfluentwidgets import ListWidget, FluentIcon
 from qfluentwidgets.multimedia import StandardMediaPlayBar
 
-from sakura import children_windows
+from sakura import children_windows, TPQ
 from sakura.components.SpeedControl import SpeedControl
 from sakura.components.TimeManager import TimeManager
-from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.components.player.SakuraPlayer import SakuraPlayer
 from sakura.components.ui import main_width
 from sakura.components.ui.BottomRightButton import BottomRightButton
 from sakura.config import conf, save_conf
-from sakura.config.sakura_logging import logger
+from sakura.config.sakura_logging import LoggerFactory
 from sakura.db.DBManager import song_client
 from sakura.factory.SakuraFactory import get_player, get_mapper
 from sakura.listener import register_listener
@@ -57,6 +56,8 @@ class SakuraPlayBar(StandardMediaPlayBar):
         self.progressSlider.sliderPressed.connect(self.progress_slider_pressed)
         self.progressSlider.sliderReleased.connect(self.progress_slider_released)
         self.progressSlider.valueChanged.connect(self.progress_slider_value_changed)
+        self.logger = LoggerFactory.get_logger(self)
+        logger = self.logger
         BottomRightButton(self, self.rightButtonLayout, FluentIcon.MINIMIZE, self.toggle_layout)
         # 注册全局键盘监听
         register_listener(keyboard.Key.f4, self.togglePlayState, '暂停/继续')
@@ -161,6 +162,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
         Start or resume playback of the currently selected song
         Handles loading new songs and managing player instances
         """
+        logger = self.logger
         current_item = self.file_list_box.currentItem()
         if current_item is None:
             return
@@ -188,8 +190,8 @@ class SakuraPlayBar(StandardMediaPlayBar):
 
             # Create new player
             player = get_player(conf.player.type, conf)  # Create player beforehand
-            sakura_player = SakuraPlayer(song_notes, self.time_manager, self.callback)
-            sakura_player.last_time = song_notes[-1]['time']
+            sakura_player = SakuraPlayer(song_notes, self.time_manager, self.callback, song_model.bpm)
+            sakura_player.last_time = int((song_notes[-1].tick * 60) / (song_model.bpm * TPQ))
             
             # Update UI before playback starts
             self.playButton.setPlay(True)
@@ -225,7 +227,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
             self.is_playing = False
             
         except Exception as e:
-            logger.error(f"Error in playback callback: {e}")
+            self.logger.error(f"Error in playback callback: {e}")
         finally:
             self.is_playing = False
             self.playButton.setPlay(False)
@@ -343,13 +345,13 @@ class SakuraPlayBar(StandardMediaPlayBar):
     def add_wait_time(self):
         """Increase playback wait time"""
         self.wait_time += Decimal(conf.control.speed)
-        logger.info(f'wait_time: {self.wait_time}')
+        self.logger.info(f'wait_time: {self.wait_time}')
 
     def reduce_wait_time(self):
         """Decrease playback wait time"""
         if self.wait_time > 0:
             self.wait_time -= Decimal(conf.control.speed)
-        logger.info(f'wait_time: {self.wait_time}')
+        self.logger.info(f'wait_time: {self.wait_time}')
 
     # Volume Control Methods
     def _handle_volume_change(self, value: int):
@@ -372,7 +374,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
                 self._start_volume_timer(volume)
             self._update_player_volume(volume)
         except Exception as e:
-            logger.error(f"Failed to handle volume change: {e}")
+            self.logger.error(f"Failed to handle volume change: {e}")
 
     def _handle_mute_change(self, is_muted: bool):
         """
@@ -390,7 +392,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
             # Start delayed logging
             self._start_volume_timer(0.0 if is_muted else self._user_volume)
         except Exception as e:
-            logger.error(f"Failed to handle mute change: {e}")
+            self.logger.error(f"Failed to handle mute change: {e}")
 
     def _update_player_volume(self, volume: float):
         """
@@ -406,10 +408,11 @@ class SakuraPlayBar(StandardMediaPlayBar):
                     for sound in current_player.player.audio:
                         sound.set_volume(volume)
         except Exception as e:
-            logger.error(f"Failed to update player volume: {e}")
+            self.logger.error(f"Failed to update player volume: {e}")
 
     def _delayed_volume_logging(self):
         """Background thread for delayed (1 second) volume change logging"""
+        logger = self.logger
         while True:
             with self._volume_lock:
                 if self._last_volume_change is None:

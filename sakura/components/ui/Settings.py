@@ -97,7 +97,7 @@ class SongsSettingsGroup(BaseSettingsGroup):
 
     def select_files(self):
         paths, _ = QFileDialog.getOpenFileNames(self, locales.messages('songs.select_files.caption'), '',
-                                                'JSON Files (*.json);;All Files (*)')
+                                                'JSON Files (*.json *.txt);;All Files (*)')
         if paths:
             path_dict = {}
             for p in paths:

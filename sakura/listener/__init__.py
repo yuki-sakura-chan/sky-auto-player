@@ -3,7 +3,7 @@ from typing import Callable, Any
 
 from pynput import keyboard
 
-from sakura.config.sakura_logging import logger
+from sakura.config.sakura_logging import LoggerFactory
 
 
 class ListenerDetail:
@@ -19,6 +19,7 @@ listener_dict: dict[Any, ListenerDetail] = {}
 
 
 def listener(key):
+    logger = LoggerFactory.get_logger(__name__)
     logger.debug(f'按键 {key} 被按下')
     if key in listener_dict:
         listener_dict[key].func()

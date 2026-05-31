@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 
 import pygame
 
-from sakura.config.sakura_logging import logger
+from sakura.config.sakura_logging import LoggerFactory
 from sakura.interface.Player import Player
 
 
@@ -25,6 +25,7 @@ class DemoPlayer(Player):
         self.num_channels = 0
         self._channel_index = 0
         self._base_volume = conf.player.volume
+        self.logger = LoggerFactory.get_logger(self)
         
         pygame.init()
         
@@ -111,7 +112,7 @@ class DemoPlayer(Player):
                 
                 self._audio_initialized = True
         except Exception as e:
-            logger.error(f"Failed to initialize audio: {e}")
+            self.logger.error(f"Failed to initialize audio: {e}")
             raise
 
     def _find_available_channel(self) -> pygame.mixer.Channel:
@@ -142,7 +143,7 @@ class DemoPlayer(Player):
             channel.play(sound)
             
         except Exception as e:
-            logger.error(f"Error playing audio sound: {e}")
+            self.self.logger.error(f"Error playing audio sound: {e}")
 
     def set_volume(self, volume: float):
         """Set volume for all sounds"""
@@ -152,7 +153,7 @@ class DemoPlayer(Player):
                 if sound:
                     sound.set_volume(volume)
         except Exception as e:
-            logger.error(f"Error setting volume: {e}")
+            self.logger.error(f"Error setting volume: {e}")
 
     def cleanup(self):
         """Proper cleanup of audio resources"""
@@ -194,7 +195,7 @@ class DemoPlayer(Player):
                 self._audio_initialized = False
                 
         except Exception as e:
-            logger.error(f"Error in audio cleanup: {e}")
+            self.logger.error(f"Error in audio cleanup: {e}")
             
     def __del__(self):
         """Destructor for guaranteed cleanup"""

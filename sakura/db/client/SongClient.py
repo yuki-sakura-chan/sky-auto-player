@@ -40,7 +40,8 @@ class SongClient:
                            VALUES (?, ?, ?, ?, ?, ?)
                            ''',
                            (model.name, model.author, model.bpm,
-                            model.pitchLevel, json.dumps(model.songNotes), model.detail))
+                            model.pitchLevel, json.dumps([note.model_dump() for note in model.songNotes]),
+                            model.detail))
             conn.commit()
             return cursor.lastrowid
 
@@ -99,12 +100,12 @@ class SongClient:
         with sqlite3.connect(self.__DB_PATH__) as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                           SELECT NAME, SONG_NOTES, ID
+                           SELECT NAME, SONG_NOTES, BPM, ID
                            FROM SONGS
                            WHERE ID = ?
                            ''', (song_id,))
             v = cursor.fetchone()
-            return SongModel(name=v[0], songNotes=json.loads(v[1]), id=v[2]) if v else None
+            return SongModel(name=v[0], songNotes=json.loads(v[1]), bpm=v[2], id=v[3]) if v else None
 
     def db_is_null(self) -> bool:
         with sqlite3.connect(self.__DB_PATH__) as conn:

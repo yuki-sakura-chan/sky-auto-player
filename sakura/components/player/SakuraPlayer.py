@@ -6,9 +6,10 @@ from itertools import groupby
 from queue import Queue, Empty
 from typing import Callable, List
 
+from sakura import TPQ
 from sakura.components.TimeManager import TimeManager
 from sakura.config import conf
-from sakura.config.sakura_logging import logger
+from sakura.config.sakura_logging import LoggerFactory
 from sakura.interface.Player import Player
 
 
@@ -16,14 +17,17 @@ class NoteEvent:
     """
     Represents a musical note event with timing and key information
     """
-    def __init__(self, time: int, keys: List[str]):
-        self.time = time  # Time in milliseconds
+
+    def __init__(self, tick: int, keys: List[str]):
+        self.tick = tick  # Time in milliseconds
         self.keys = keys  # List of keys to be played
+
 
 class EventQueue:
     """
     Thread-safe queue for managing note events
     """
+
     def __init__(self):
         self.queue = Queue()
         self._lock = threading.Lock()
@@ -32,7 +36,7 @@ class EventQueue:
         """Add a new event to the queue thread-safely"""
         with self._lock:
             self.queue.put(event)
- 
+
     def get(self, block=True, timeout=None):
         """Get an event from the queue with optional blocking"""
         return self.queue.get(block=block, timeout=timeout)
@@ -65,7 +69,8 @@ class SakuraPlayer:
     """
     Main player class for handling music playback and note events
     """
-    def __init__(self, song_notes: list, time_manager: TimeManager, cb: Callable[[], None] = lambda: None):
+
+    def __init__(self, song_notes: list, time_manager: TimeManager, cb: Callable[[], None] = lambda: None, bpm=60):
         """
         Initialize the player with song notes and time management
         
@@ -82,13 +87,15 @@ class SakuraPlayer:
         self.player = None
         self.key_mapping = None
         self.last_time = 0
-        
+
         self._song_notes = song_notes
         self._playback_thread = None
         self._seek_event = threading.Event()
         self._seeking = False
         self._seek_lock = threading.Lock()
         self._shutdown = threading.Event()
+        self.logger = LoggerFactory.get_logger(self)
+        self.bpm = bpm
 
     @contextmanager
     def _thread_pool(self, max_workers: int = 15):
@@ -106,23 +113,23 @@ class SakuraPlayer:
                 self._executor.shutdown(wait=False)
                 self._executor = None
 
-    def _prepare_notes(self, start_time: int = 0) -> List[NoteEvent]:
+    def _prepare_notes(self, start_tick: int = 0) -> List[NoteEvent]:
         """
         Prepare note events starting from specified time
         
         Args:
-            start_time: Starting time in milliseconds
+            start_tick: Starting tick
         Returns:
             List of NoteEvent objects
         """
         filtered_notes = [
             note for note in self._song_notes
-            if note['time'] >= start_time
+            if note.tick >= start_tick
         ]
-        
+
         return [
-            NoteEvent(t, [note['key'] for note in group])
-            for t, group in groupby(filtered_notes, key=lambda x: x['time'])
+            NoteEvent(t, [note.key for note in group])
+            for t, group in groupby(filtered_notes, key=lambda x: x.tick)
         ]
 
     def _safe_stop_thread(self, thread: threading.Thread, timeout: float = 0.5):
@@ -150,7 +157,7 @@ class SakuraPlayer:
                     if self._seeking or self._seek_event.is_set():
                         time.sleep(0.1)
                         continue
-                    
+
                     try:
                         # Try to get next event from queue with timeout
                         event = self.event_queue.get(block=True, timeout=0.1)
@@ -165,18 +172,19 @@ class SakuraPlayer:
                             self.time_manager.force_set_time(0)  # Reset to beginning
                             self.callback()  # Update UI via callback
                         continue
-                    
+
                     # Get current playback time
                     current_time = self.time_manager.get_current_time()
-                    
+
+                    event_time = (event.tick * 60) / (self.bpm * TPQ)
                     # Skip events that are in the past
-                    if event.time < current_time:
+                    if event_time < current_time:
                         continue
-                    
+
                     # Calculate wait time until next event
-                    wait_time = (event.time - current_time) / 1000
+                    wait_time = (event_time - current_time) / 1000
                     elapsed_time = 0
-                    
+
                     # Wait loop with periodic checks for seek/stop requests
                     while elapsed_time < wait_time:
                         if self._seek_event.is_set() or self._shutdown.is_set():
@@ -191,18 +199,17 @@ class SakuraPlayer:
                     # Skip event processing if seeking or shutdown requested
                     if self._seek_event.is_set() or self._shutdown.is_set():
                         continue
-                    
+
                     # Update current time to event time
-                    self.time_manager.set_current_time(event.time)
+                    self.time_manager.set_current_time(event_time)
                     
                     # Process each key in the event and submit to thread pool
                     for key in event.keys:
-                        if mapped_key := self.key_mapping.get(key):
-                            if not self._seek_event.is_set():
-                                executor.submit(self.player.press, mapped_key, conf)
-                    
+                        if not self._seek_event.is_set():
+                            executor.submit(self.player.press, key, conf)
+
                 except Exception as e:
-                    logger.error(f"Error in playback worker: {e}")
+                    self.logger.error(f"Error in playback worker: {e}")
                     if not self._seek_event.is_set():
                         break
 
@@ -216,21 +223,22 @@ class SakuraPlayer:
             start_time: Optional starting position in seconds
         """
         self.stop()
-        
+
         self.player = player
         self.key_mapping = key_mapping
         self.is_finished = False
         self.is_playing = True
-        
+
         start_ms = (start_time or 0) * 1000
+        start_tick = start_ms * (self.bpm * TPQ / 60)
         self.time_manager.set_current_time(start_ms)
         self.time_manager.set_duration(self.last_time)
         self.time_manager.set_playing(True)
-        
+
         # Load all notes at once
-        notes = self._prepare_notes(start_ms)
+        notes = self._prepare_notes(start_tick)
         self.event_queue.load_all(notes)
-        
+
         # Start only the playback thread
         self._playback_thread = threading.Thread(
             target=self._playback_worker,
@@ -246,14 +254,14 @@ class SakuraPlayer:
     def continue_play(self):
         """Resume playback from current position"""
         if not self.player or not self.key_mapping:
-            logger.error("Player or key mapping not initialized")
+            self.logger.error("Player or key mapping not initialized")
             return
-            
+
         # If the song has ended, start from the beginning
         if self.is_finished:
             self.is_finished = False
             self.seek(0)  # Rewind to the beginning
-        
+
         self.is_playing = True
         self.time_manager.set_playing(True)
 
@@ -267,24 +275,24 @@ class SakuraPlayer:
             self.is_playing = False
             self._seek_event.set()
             self._shutdown.set()
-            
+
             if self.time_manager:
                 self.time_manager.set_playing(False)
-            
+
             # Clear the queue
             if hasattr(self, 'event_queue') and self.event_queue:
                 self.event_queue.clear()
-                
+
             # Stop the playback thread
             if self._playback_thread and self._playback_thread.is_alive():
                 self._safe_stop_thread(self._playback_thread)
                 self._playback_thread = None
-                
+
             self._seek_event.clear()
             self._shutdown.clear()
-            
+
         except Exception as e:
-            logger.error(f"Error stopping playback: {e}")
+            self.logger.error(f"Error stopping playback: {e}")
 
     def seek(self, position_ms: int):
         """
@@ -298,34 +306,34 @@ class SakuraPlayer:
                 was_playing = self.is_playing
                 self._seek_event.set()
                 self._seeking = True
-                
+
                 # Fast cleanup of the queue
                 self.event_queue.clear()
-                
+
                 # Update time immediately
                 self.time_manager.force_set_time(position_ms)
-                
+
                 # Prepare all notes from the new position
                 notes = self._prepare_notes(position_ms)
-                
+
                 # Load all notes at once
                 self.event_queue.load_all(notes)
-                
+
                 # Start only the playback thread
                 if self._playback_thread and self._playback_thread.is_alive():
                     self._safe_stop_thread(self._playback_thread)
-                    
+
                 self._playback_thread = threading.Thread(
                     target=self._playback_worker,
                     daemon=True
                 )
                 self._playback_thread.start()
-                
+
                 # Immediately restore playback
                 if was_playing:
                     self.is_playing = True
                     self.time_manager.set_playing(True)
-                    
+
             finally:
                 self._seeking = False
                 self._seek_event.clear()
@@ -337,7 +345,7 @@ class SakuraPlayer:
             if self.cb:
                 self.cb()
         except Exception as e:
-            logger.error(f"Error in player callback: {e}")
+            self.logger.error(f"Error in player callback: {e}")
 
     def cleanup(self, force=False):
         """
@@ -349,38 +357,38 @@ class SakuraPlayer:
         try:
             # Stop playback
             self.is_playing = False
-            
+
             if force:
                 self.is_finished = True
                 self._seek_event.set()
                 self._shutdown.set()
-                
+
                 # Clear the event queue
                 if hasattr(self, 'event_queue') and self.event_queue:
                     self.event_queue.clear()
-                    
+
                 # Stop the playback thread
                 if self._playback_thread and self._playback_thread.is_alive():
                     self._safe_stop_thread(self._playback_thread)
                     self._playback_thread = None
-                    
+
                 # Clean up the player and release resources
                 if self.player:
                     self.player.cleanup()
                     self.player = None
-                    
+
                 # Clear all references to data
                 self._song_notes = None
                 self.key_mapping = None
                 self.event_queue = None
-                
+
                 # Reset flags
                 self._seek_event.clear()
                 self._shutdown.clear()
                 self._seeking = False
-                
+
         except Exception as e:
-            logger.error(f"Error in cleanup: {e}")
+            self.logger.error(f"Error in cleanup: {e}")
 
     def __del__(self):
         """Destructor ensuring cleanup is called"""

@@ -1,26 +1,66 @@
 import logging
 from datetime import datetime
+from pathlib import Path
 
 from sakura.config import app_data
 
-log_dir = app_data / 'logs'
-if not log_dir.exists():
-    log_dir.mkdir()
-# 配置基本的日志格式和日志级别
-logging.basicConfig(
-    level=logging.INFO,  # 设置日志记录级别
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    # 根据年月日生成日志文件
-    filename=log_dir / datetime.now().strftime('sap_%Y-%m-%d.log'),
-    filemode='a',  # 追加模式
-    encoding='utf-8'
-)
 
-# 创建一个日志记录器（logger）
-logger = logging.getLogger(__name__)
+class LoggerFactory:
+    _inited = False
 
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
+    @classmethod
+    def init(cls, app_data: Path):
+
+        if cls._inited:
+            return
+
+        log_dir = app_data / 'logs'
+
+        if not log_dir.exists():
+            log_dir.mkdir(parents=True)
+
+        log_file = log_dir / datetime.now().strftime(
+            'sap_%Y-%m-%d.log'
+        )
+
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+
+        root = logging.getLogger()
+
+        root.setLevel(logging.INFO)
+
+        # 文件输出
+        file_handler = logging.FileHandler(
+            filename=log_file,
+            mode='a',
+            encoding='utf-8'
+        )
+
+        file_handler.setFormatter(formatter)
+
+        root.addHandler(file_handler)
+
+        # 控制台输出
+        console_handler = logging.StreamHandler()
+
+        console_handler.setFormatter(formatter)
+
+        root.addHandler(console_handler)
+
+        cls._inited = True
+
+    @staticmethod
+    def get_logger(obj):
+
+        # obj 原名 object
+        if isinstance(obj, str):
+            return logging.getLogger(obj)
+
+        return logging.getLogger(
+            obj.__class__.__name__
+        )
+
+
+LoggerFactory.init(app_data)
