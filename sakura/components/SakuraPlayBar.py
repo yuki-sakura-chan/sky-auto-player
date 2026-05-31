@@ -19,7 +19,7 @@ from sakura.components.ui.BottomRightButton import BottomRightButton
 from sakura.config import conf, save_conf
 from sakura.config.sakura_logging import logger
 from sakura.db.DBManager import song_client
-from sakura.factory.PlayerFactory import get_player
+from sakura.factory.SakuraFactory import get_player, get_mapper
 from sakura.listener import register_listener
 from sakura.registrar.listener_registers import listener_registers
 
@@ -236,10 +236,8 @@ class SakuraPlayBar(StandardMediaPlayBar):
     def get_key_mapping(self):
         """Get the current key mapping configuration"""
         mapping_type = conf.mapping.type
-        mapping_dict = {
-            "json": JsonMapper()
-        }
-        return mapping_dict[mapping_type].get_key_mapping()
+        mapper = get_mapper(mapping_type)
+        return mapper.get_key_mapping()
 
     def progress_slider_pressed(self):
         """Handle when user starts dragging the progress slider"""

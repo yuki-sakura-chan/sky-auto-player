@@ -60,3 +60,7 @@ def check_song_model_data(data: dict[Any]) -> bool:
     if not isinstance(note, dict):
         return False
     return True
+
+
+def conver(data: dict[Any]) -> dict[str, Any]:
+    pass

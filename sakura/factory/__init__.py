@@ -13,3 +13,10 @@ player_mapper = {
         "module": "sakura.components.player.DemoPlayer"
     }
 }
+
+key_mapper = {
+    "json": {
+        "class": "JsonMapper",
+        "module": "sakura.components.mapper.JsonMapper"
+    }
+}

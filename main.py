@@ -7,7 +7,7 @@ from sakura.components.mapper.JsonMapper import JsonMapper
 from sakura.components.player.SakuraPlayer import SakuraPlayer
 from sakura.config import conf
 from sakura.db.JsonPick import load_json, get_file_list
-from sakura.factory.PlayerFactory import get_player
+from sakura.factory.SakuraFactory import get_player
 from sakura.listener import register_listener
 
 paused = True
