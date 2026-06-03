@@ -143,7 +143,7 @@ class DemoPlayer(Player):
             channel.play(sound)
             
         except Exception as e:
-            self.self.logger.error(f"Error playing audio sound: {e}")
+            self.logger.error(f"Error playing audio sound: {e}")
 
     def set_volume(self, volume: float):
         """Set volume for all sounds"""

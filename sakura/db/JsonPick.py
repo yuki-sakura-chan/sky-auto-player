@@ -5,7 +5,7 @@ from typing import Any
 
 import chardet
 
-from sakura import TPQ
+from sakura.components.TickManager import TickManager
 from sakura.config import conf
 from sakura.config.sakura_logging import LoggerFactory
 from sakura.db.DBManager import song_client
@@ -75,7 +75,7 @@ def conver(data: list[dict[str, Any]], bpm) -> list[Note]:
     notes = []
     for v in data:
         time = v['time']
-        tick = time * (bpm * TPQ / 60)
+        tick = TickManager(bpm).tick_conver(time)
         key = mapper.get(v['key'])
         notes.append(Note(tick=tick, key=key))
     return [note.model_dump() for note in notes]

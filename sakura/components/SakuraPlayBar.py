@@ -9,8 +9,9 @@ from pynput import keyboard
 from qfluentwidgets import ListWidget, FluentIcon
 from qfluentwidgets.multimedia import StandardMediaPlayBar
 
-from sakura import children_windows, TPQ
+from sakura import children_windows
 from sakura.components.SpeedControl import SpeedControl
+from sakura.components.TickManager import TickManager
 from sakura.components.TimeManager import TimeManager
 from sakura.components.player.SakuraPlayer import SakuraPlayer
 from sakura.components.ui import main_width
@@ -37,7 +38,7 @@ class SakuraPlayBar(StandardMediaPlayBar):
     wait_time: Decimal = 0
     progress_slider_clicked: bool = False
     user_is_seeking: bool = False
-    
+
     _user_volume: float = 0
     _is_muted: bool = False
     _last_volume_change = None
@@ -66,16 +67,17 @@ class SakuraPlayBar(StandardMediaPlayBar):
         # 注 SpeedControl 监听
         listener_registers.append(SpeedControl(lambda: float(self.wait_time)))
         self.time_manager = TimeManager()
+        self.tick_manager = TickManager()
         self.time_manager.timeChanged.connect(self.update_progress)
-        
+
         # Add mouse click handling for the progress slider
         self.progressSlider.mousePressEvent = self.progress_slider_mouse_press
-        
+
         try:
             # Load initial volume from config
             self._user_volume = float(conf.player.volume)
             self._is_muted = False
-            
+
             self.volumeButton.setVolume(int(self._user_volume * 100))
             # Connect volume signals
             self.volumeButton.volumeChanged.connect(self._handle_volume_change)
@@ -162,13 +164,14 @@ class SakuraPlayBar(StandardMediaPlayBar):
         Start or resume playback of the currently selected song
         Handles loading new songs and managing player instances
         """
+        tick_manager = self.tick_manager
         logger = self.logger
         current_item = self.file_list_box.currentItem()
         if current_item is None:
             return
-        
+
         song_id = current_item.data(1)
-        
+
         # If the same song and not seeking - just continue
         if self.playing_id == song_id and not self.progress_slider_clicked:
             self.playButton.setPlay(True)
@@ -184,30 +187,31 @@ class SakuraPlayBar(StandardMediaPlayBar):
                 old_player = self.sakura_player_dict[self.playing_id]
                 old_player.cleanup(force=True)  # Force cleanup when changing songs
                 del self.sakura_player_dict[self.playing_id]
-            
+
             # 从数据库查询 song_notes
             song_notes = song_model.songNotes
 
             # Create new player
             player = get_player(conf.player.type, conf)  # Create player beforehand
-            sakura_player = SakuraPlayer(song_notes, self.time_manager, self.callback, song_model.bpm)
-            sakura_player.last_time = int((song_notes[-1].tick * 60) / (song_model.bpm * TPQ))
-            
+            tick_manager.set_bpm(song_model.bpm)
+            sakura_player = SakuraPlayer(song_notes, tick_manager, self.time_manager, self.callback)
+            sakura_player.last_time = tick_manager.time_conver(song_notes[-1].tick)
+
             # Update UI before playback starts
             self.playButton.setPlay(True)
             total_seconds = sakura_player.last_time // 1000
             self.progressSlider.setRange(0, total_seconds)
-            
+
             # Save player and start playback
             self.sakura_player_dict[song_id] = sakura_player
             self.playing_id = song_id
             self.is_playing = True
-            
+
             # Start playback
             sakura_player.play(player, self.get_key_mapping())
             logger.info('正在播放：%s', self.file_list_box.currentItem().text())
 
-            
+
         except Exception as e:
             logger.error(f"Error playing song {song_model.name}: {e}")
             self.is_playing = False
@@ -222,10 +226,10 @@ class SakuraPlayBar(StandardMediaPlayBar):
             if self.playing_id in self.sakura_player_dict:
                 current_player = self.sakura_player_dict[self.playing_id]
                 current_player.cleanup(force=False)  # Soft cleanup when song ends
-            
+
             self.playButton.setPlay(False)
             self.is_playing = False
-            
+
         except Exception as e:
             self.logger.error(f"Error in playback callback: {e}")
         finally:
@@ -255,25 +259,25 @@ class SakuraPlayBar(StandardMediaPlayBar):
         """
         if not self.progress_slider_clicked:
             return
-            
+
         try:
             value = self.progressSlider.value()
             current_player = self.sakura_player_dict.get(self.playing_id)
-            
+
             if current_player:
                 was_playing = self.is_playing
-                
+
                 # Pause playback
                 if was_playing:
                     self.time_manager.set_playing(False)
-                
+
                 # Perform seeking
                 current_player.seek(value * 1000)
-                
+
                 # Resume playback
                 if was_playing:
                     self.time_manager.set_playing(True)
-                    
+
         finally:
             self.progress_slider_clicked = False
             self.user_is_seeking = False
@@ -287,11 +291,11 @@ class SakuraPlayBar(StandardMediaPlayBar):
         """
         if not self.user_is_seeking:
             return
-        
+
         minutes = value // 60
         seconds = value % 60
         self.currentTimeLabel.setText(f'{minutes}:{seconds:02d}')
-        
+
         if self.playing_id and self.playing_id in self.sakura_player_dict:
             total_seconds = self.sakura_player_dict[self.playing_id].last_time // 1000
             remain_seconds = total_seconds - value
@@ -310,10 +314,10 @@ class SakuraPlayBar(StandardMediaPlayBar):
             # Calculate the clicked position as a percentage
             value = event.position().x() / self.progressSlider.width()
             new_value = int(value * self.progressSlider.maximum())
-            
+
             # Update the slider value
             self.progressSlider.setValue(new_value)
-            
+
             # Handle the position change similar to slider release
             self.progress_slider_clicked = True
             self.user_is_seeking = True
@@ -328,13 +332,13 @@ class SakuraPlayBar(StandardMediaPlayBar):
         """
         if not self.user_is_seeking:
             current_seconds = current_time_ms // 1000
-            
+
             self.progressSlider.setValue(current_seconds)
-            
+
             minutes = current_seconds // 60
             seconds = current_seconds % 60
             self.currentTimeLabel.setText(f'{minutes}:{seconds:02d}')
-            
+
             if self.playing_id and self.playing_id in self.sakura_player_dict:
                 total_seconds = self.sakura_player_dict[self.playing_id].last_time // 1000
                 remain_seconds = total_seconds - current_seconds
@@ -363,13 +367,13 @@ class SakuraPlayBar(StandardMediaPlayBar):
         """
         try:
             volume = float(value) / 100.0
-            
+
             # Only save to config if not muted
             if not self._is_muted:
                 self._user_volume = volume
                 conf.player.volume = volume
                 save_conf(conf)
-                
+
                 # Start delayed logging
                 self._start_volume_timer(volume)
             self._update_player_volume(volume)
@@ -417,12 +421,12 @@ class SakuraPlayBar(StandardMediaPlayBar):
             with self._volume_lock:
                 if self._last_volume_change is None:
                     return
-                
+
                 current_volume = self._last_volume_change
                 self._last_volume_change = None
-            
+
             time.sleep(1)
-            
+
             with self._volume_lock:
                 if self._last_volume_change is not None:
                     continue
@@ -441,10 +445,10 @@ class SakuraPlayBar(StandardMediaPlayBar):
         """
         with self._volume_lock:
             self._last_volume_change = volume
-            
+
             if self._volume_timer and self._volume_timer.is_alive():
                 return
-                
+
             self._volume_timer = threading.Thread(
                 target=self._delayed_volume_logging,
                 daemon=True
