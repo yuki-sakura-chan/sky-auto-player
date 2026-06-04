@@ -209,6 +209,8 @@ class SakuraPlayer:
                     self.logger.error(f"Error in playback worker: {e}")
                     if not self._seek_event.is_set():
                         break
+    def set_last_time(self, last_time: int):
+        self.last_time = last_time
 
     def play(self, player: Player, key_mapping: dict, start_time: int = None):
         """

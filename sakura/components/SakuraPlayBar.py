@@ -62,8 +62,8 @@ class SakuraPlayBar(StandardMediaPlayBar):
         BottomRightButton(self, self.rightButtonLayout, FluentIcon.MINIMIZE, self.toggle_layout)
         # 注册全局键盘监听
         register_listener(keyboard.Key.f4, self.togglePlayState, '暂停/继续')
-        register_listener(keyboard.Key.up, self.add_wait_time, '增加等待时间')
-        register_listener(keyboard.Key.down, self.reduce_wait_time, '减少等待时间')
+        register_listener(keyboard.Key.up, self.add_bpm, '增加bpm')
+        register_listener(keyboard.Key.down, self.reduce_bpm, '减少bpm')
         # 注 SpeedControl 监听
         listener_registers.append(SpeedControl(lambda: float(self.wait_time)))
         self.time_manager = TimeManager()
@@ -193,9 +193,10 @@ class SakuraPlayBar(StandardMediaPlayBar):
 
             # Create new player
             player = get_player(conf.player.type, conf)  # Create player beforehand
-            tick_manager.set_bpm(song_model.bpm)
             sakura_player = SakuraPlayer(song_notes, tick_manager, self.time_manager, self.callback)
-            sakura_player.last_time = tick_manager.time_conver(song_notes[-1].tick)
+            tick_manager.bpm_changed.connect(lambda: sakura_player.set_last_time(tick_manager.time_conver(song_notes[-1].tick)))
+            tick_manager.set_bpm(song_model.bpm)
+
 
             # Update UI before playback starts
             self.playButton.setPlay(True)
@@ -346,16 +347,13 @@ class SakuraPlayBar(StandardMediaPlayBar):
                 remain_seconds = remain_seconds % 60
                 self.remainTimeLabel.setText(f'{remain_minutes}:{remain_seconds:02d}')
 
-    def add_wait_time(self):
+    def add_bpm(self):
         """Increase playback wait time"""
-        self.wait_time += Decimal(conf.control.speed)
-        self.logger.info(f'wait_time: {self.wait_time}')
+        pass
 
-    def reduce_wait_time(self):
+    def reduce_bpm(self):
         """Decrease playback wait time"""
-        if self.wait_time > 0:
-            self.wait_time -= Decimal(conf.control.speed)
-        self.logger.info(f'wait_time: {self.wait_time}')
+        pass
 
     # Volume Control Methods
     def _handle_volume_change(self, value: int):
