@@ -349,11 +349,11 @@ class SakuraPlayBar(StandardMediaPlayBar):
 
     def add_bpm(self):
         """Increase playback wait time"""
-        pass
+        self.tick_manager.update_bpm(60)
 
     def reduce_bpm(self):
         """Decrease playback wait time"""
-        pass
+        self.tick_manager.update_bpm(-60)
 
     # Volume Control Methods
     def _handle_volume_change(self, value: int):

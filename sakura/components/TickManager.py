@@ -17,6 +17,7 @@ class TickManager(QObject):
         self._bpm = bpm
         self._start_time = 0
         self._start_tick = 0
+        self._current_tick = 0
 
     def set_bpm(self, bpm):
         self._bpm = bpm
@@ -25,6 +26,10 @@ class TickManager(QObject):
     def update_bpm(self, bpm):
         if self._bpm + bpm <= 0:
             return
+        current_tick = self._current_tick
+        self._start_tick = current_tick
+        self._start_time = time.perf_counter()
+        self.reset_pause()
         self._bpm += bpm
         self.bpm_changed.emit()
 
@@ -53,6 +58,7 @@ class TickManager(QObject):
                 - self._pause_total
         )
         tick = int(elapsed * self.tick_per_second() + self._start_tick)
+        self._current_tick = tick
         self.tick_changed.emit(tick)
         return tick
 
